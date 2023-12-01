@@ -1,4 +1,4 @@
-module github.com/Falokut/online_cinema_ticket_office/images_storage_service
+module github.com/Falokut/images_storage_service
 
 go 1.21.4
 

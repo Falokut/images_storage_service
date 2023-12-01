@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/Falokut/grpc_errors"
-	img_storage_serv "github.com/Falokut/online_cinema_ticket_office/images_storage_service/pkg/images_storage_service/v1/protos"
+	img_storage_serv "github.com/Falokut/images_storage_service/pkg/images_storage_service/v1/protos"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

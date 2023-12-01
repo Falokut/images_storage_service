@@ -11,9 +11,9 @@ import (
 	"strings"
 
 	"github.com/Falokut/grpc_errors"
-	"github.com/Falokut/online_cinema_ticket_office/images_storage_service/internal/repository"
-	img_storage_serv "github.com/Falokut/online_cinema_ticket_office/images_storage_service/pkg/images_storage_service/v1/protos"
-	"github.com/Falokut/online_cinema_ticket_office/images_storage_service/pkg/metrics"
+	"github.com/Falokut/images_storage_service/internal/repository"
+	img_storage_serv "github.com/Falokut/images_storage_service/pkg/images_storage_service/v1/protos"
+	"github.com/Falokut/images_storage_service/pkg/metrics"
 	"github.com/google/uuid"
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"

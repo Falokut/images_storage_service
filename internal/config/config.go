@@ -3,10 +3,10 @@ package config
 import (
 	"sync"
 
-	"github.com/Falokut/online_cinema_ticket_office/images_storage_service/pkg/jaeger"
+	"github.com/Falokut/images_storage_service/pkg/jaeger"
 
 	logging "github.com/Falokut/online_cinema_ticket_office.loggerwrapper"
-	"github.com/Falokut/online_cinema_ticket_office/images_storage_service/pkg/metrics"
+	"github.com/Falokut/images_storage_service/pkg/metrics"
 	"github.com/ilyakaznacheev/cleanenv"
 )
 
