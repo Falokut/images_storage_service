@@ -20,7 +20,7 @@ require (
 )
 
 require (
-	github.com/Falokut/interceptors v1.0.1 // indirect
+	github.com/Falokut/interceptors v1.0.2 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0 // indirect
 	github.com/matttproud/golang_protobuf_extensions/v2 v2.0.0 // indirect
@@ -29,7 +29,7 @@ require (
 
 require (
 	github.com/BurntSushi/toml v1.2.1 // indirect
-	github.com/Falokut/grpc_rest_server v1.0.1
+	github.com/Falokut/grpc_rest_server v1.0.3
 	github.com/HdrHistogram/hdrhistogram-go v1.1.2 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
