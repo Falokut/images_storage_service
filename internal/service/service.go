@@ -10,14 +10,16 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/Falokut/grpc_errors"
 	"github.com/Falokut/images_storage_service/internal/repository"
 	img_storage_serv "github.com/Falokut/images_storage_service/pkg/images_storage_service/v1/protos"
 	"github.com/Falokut/images_storage_service/pkg/metrics"
 	"github.com/google/uuid"
 	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/genproto/googleapis/api/httpbody"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
@@ -56,48 +58,48 @@ func (s *ImagesStorageService) UploadImage(ctx context.Context,
 	span, ctx := opentracing.StartSpanFromContext(ctx,
 		"ImagesStorageService.UploadImage")
 	defer span.Finish()
-	var err error
-	defer span.SetTag("grpc.status", grpc_errors.GetGrpcCode(err))
 
-	if err = s.checkImage(ctx, in.Image); err != nil {
+	if err := s.checkImage(ctx, in.Image); err != nil {
+		span.SetTag("grpc.status", status.Code(err))
+		ext.LogError(span, err)
 		return nil, err
 	}
 
 	imageId, err := s.saveImage(ctx, in.Image, in.Category)
 	if err != nil {
+		span.SetTag("grpc.status", status.Code(err))
+		ext.LogError(span, err)
 		return nil, err
 	}
 
 	s.logger.Info("Image uploaded")
+
+	span.SetTag("grpc.status", codes.OK)
 	return &img_storage_serv.UploadImageResponce{ImageId: imageId}, nil
 }
 
 func (s *ImagesStorageService) checkImage(ctx context.Context, Image []byte) error {
 	span, _ := opentracing.StartSpanFromContext(ctx, "ImagesStorageService.checkImage")
 	defer span.Finish()
-	var err error
-	defer span.SetTag("grpc.status", grpc_errors.GetGrpcCode(err))
 
 	if len(Image) == 0 {
-		err = s.errHandler.createErrorResponce(ErrZeroSizeFile, "")
-		return err
+		return s.errHandler.createErrorResponceWithSpan(span, ErrZeroSizeFile, "")
 	}
 	if len(Image) > int(s.cfg.MaxImageSize) {
-		err = s.errHandler.createExtendedErrorResponce(
+		return s.errHandler.createExtendedErrorResponceWithSpan(span,
 			ErrImageTooLarge,
 			"",
 			fmt.Sprintf("max image size: %d, file size: %d",
 				s.cfg.MaxImageSize, s.cfg.MaxImageSize),
 		)
-		return err
 	}
 
 	s.logger.Info("Checking filetype")
 	if fileType := s.detectFileType(&Image); fileType != "image" {
-		err = s.errHandler.createExtendedErrorResponce(ErrUnsupportedFileType, "", "unsupported file type")
-		return err
+		return s.errHandler.createExtendedErrorResponceWithSpan(span, ErrUnsupportedFileType, "", "unsupported file type")
 	}
 
+	span.SetTag("grpc.status", codes.OK)
 	return nil
 }
 
@@ -109,18 +111,16 @@ func (s *ImagesStorageService) StreamingUploadImage(
 		"ImagesStorageService.StreamingUploadImage",
 	)
 	defer span.Finish()
-	var err error
-	defer span.SetTag("grpc.status", grpc_errors.GetGrpcCode(err))
-
 	s.logger.Info("Start receiving image data")
 
 	req, imageData, err := s.receiveUploadImage(ctx, stream)
 	if err != nil {
+		span.SetTag("grpc.status", status.Code(err))
+		ext.LogError(span, err)
 		return err
 	}
 	if req == nil {
-		err = s.errHandler.createErrorResponce(ErrReceivedNilRequest, "")
-		return err
+		return s.errHandler.createErrorResponceWithSpan(span, ErrReceivedNilRequest, "")
 	}
 
 	s.logger.Info("Image data received. Calling upload method")
@@ -129,13 +129,16 @@ func (s *ImagesStorageService) StreamingUploadImage(
 		Category: req.Category,
 	})
 	if err != nil {
+		span.SetTag("grpc.status", status.Code(err))
+		ext.LogError(span, err)
 		return err // error alredy logged
 	}
 	if err = stream.SendAndClose(&img_storage_serv.UploadImageResponce{ImageId: res.ImageId}); err != nil {
-		return s.errHandler.createErrorResponce(err, "can't send response")
+		return s.errHandler.createErrorResponceWithSpan(span, err, "can't send response")
 	}
-	s.logger.Info("Responce successfully send")
 
+	s.logger.Info("Responce successfully send")
+	span.SetTag("grpc.status", codes.OK)
 	return nil
 }
 
@@ -145,16 +148,13 @@ func (s *ImagesStorageService) receiveUploadImage(ctx context.Context,
 	span, _ := opentracing.StartSpanFromContext(ctx,
 		"ImagesStorageService.receiveUploadImage")
 	defer span.Finish()
-	var err error
-	defer span.SetTag("grpc.status", grpc_errors.GetGrpcCode(err))
 
 	var firstReq *img_storage_serv.StreamingUploadImageRequest
 	imageData := bytes.Buffer{}
 	for {
-
-		err = stream.Context().Err()
+		err := stream.Context().Err()
 		if err != nil {
-			return nil, []byte{}, s.errHandler.createErrorResponce(err, "")
+			return nil, []byte{}, s.errHandler.createErrorResponceWithSpan(span, err, "")
 		}
 
 		s.logger.Info("Waiting to receive more data")
@@ -166,21 +166,19 @@ func (s *ImagesStorageService) receiveUploadImage(ctx context.Context,
 		if err == io.EOF {
 			s.logger.Info("No more data")
 			err = nil
+			span.SetTag("grpc.status", codes.OK)
 			return firstReq, imageData.Bytes(), nil
 		}
 
 		chunkSize := len(req.Data)
 		imageSize := imageData.Len() + chunkSize
 		s.logger.Debugf("Received a chunk with size: %d", chunkSize)
-
 		if imageSize > s.cfg.MaxImageSize {
-			s.logger.Warn("Image too big")
-			err = s.errHandler.createErrorResponce(
+			return nil, []byte{}, s.errHandler.createErrorResponceWithSpan(span,
 				ErrImageTooLarge,
 				fmt.Sprintf("image size: %d, max supported size: %d",
 					imageSize, s.cfg.MaxImageSize),
 			)
-			return nil, []byte{}, err
 		}
 		imageData.Write(req.Data)
 	}
@@ -191,15 +189,17 @@ func (s *ImagesStorageService) GetImage(ctx context.Context,
 	s.logger.Info("Start getting image")
 	span, ctx := opentracing.StartSpanFromContext(ctx, "ImagesStorageService.GetImage")
 	defer span.Finish()
-	var err error
-	defer span.SetTag("grpc.status", grpc_errors.GetGrpcCode(err))
 
 	s.logger.Info("Calling storage to get image")
 	image, err := s.imageStorage.GetImage(ctx, in.ImageId, in.Category)
+	if errors.Is(err, repository.ErrNotExist) {
+		return nil, s.errHandler.createExtendedErrorResponceWithSpan(span, ErrCantFindImageByID, "", "image not found")
+	}
 	if err != nil {
-		return nil, s.errHandler.createErrorResponce(ErrCantFindImageByID, err.Error())
+		return nil, s.errHandler.createErrorResponceWithSpan(span, ErrInternal, err.Error())
 	}
 	s.logger.Info("Writting responce")
+	span.SetTag("grpc.status", codes.OK)
 	return &httpbody.HttpBody{ContentType: http.DetectContentType(image), Data: image}, nil
 }
 
@@ -208,10 +208,9 @@ func (s *ImagesStorageService) IsImageExist(ctx context.Context,
 	span, ctx := opentracing.StartSpanFromContext(ctx,
 		"ImagesStorageService.IsImageExist")
 	defer span.Finish()
-	var err error
-	defer span.SetTag("grpc.status", grpc_errors.GetGrpcCode(err))
 
 	imageExist := s.imageStorage.IsImageExist(ctx, in.ImageId, in.Category)
+	span.SetTag("grpc.status", codes.OK)
 	return &img_storage_serv.ImageExistResponce{ImageExist: imageExist}, nil
 }
 
@@ -219,17 +218,16 @@ func (s *ImagesStorageService) DeleteImage(ctx context.Context,
 	in *img_storage_serv.ImageRequest) (*emptypb.Empty, error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "ImagesStorageService.DeleteImage")
 	defer span.Finish()
-	var err error
-	defer span.SetTag("grpc.status", grpc_errors.GetGrpcCode(err))
 
-	err = s.imageStorage.DeleteImage(ctx, in.ImageId, in.Category)
+	err := s.imageStorage.DeleteImage(ctx, in.ImageId, in.Category)
 	if errors.Is(err, repository.ErrNotExist) {
-		return nil, s.errHandler.createExtendedErrorResponce(ErrCantFindImageByID, "", "image not found")
+		return nil, s.errHandler.createExtendedErrorResponceWithSpan(span, ErrCantFindImageByID, "", "image not found")
 	}
 	if err != nil {
-		return nil, s.errHandler.createErrorResponce(ErrCantDeleteImage, err.Error())
+		return nil, s.errHandler.createErrorResponceWithSpan(span, ErrCantDeleteImage, err.Error())
 	}
 
+	span.SetTag("grpc.status", codes.OK)
 	return &emptypb.Empty{}, nil
 }
 
@@ -237,8 +235,6 @@ func (s *ImagesStorageService) saveImage(ctx context.Context, Image []byte, Cate
 	s.logger.Info("Start saving image")
 	span, ctx := opentracing.StartSpanFromContext(ctx, "ImagesStorageService.saveImage")
 	defer span.Finish()
-	var err error
-	defer span.SetTag("grpc.status", grpc_errors.GetGrpcCode(err))
 
 	s.logger.Info("Getting file extension")
 	ext, _ := mime.ExtensionsByType(http.DetectContentType(Image))
@@ -246,10 +242,11 @@ func (s *ImagesStorageService) saveImage(ctx context.Context, Image []byte, Cate
 
 	s.metrics.IncBytesUploaded(len(Image))
 	s.logger.Info("Calling storage to save image")
-	if err = s.imageStorage.SaveImage(ctx, Image, ImageId, Category); err != nil {
-		return "", s.errHandler.createErrorResponce(ErrCantSaveImage, err.Error())
+	if err := s.imageStorage.SaveImage(ctx, Image, ImageId, Category); err != nil {
+		return "", s.errHandler.createErrorResponceWithSpan(span, ErrCantSaveImage, err.Error())
 	}
 
+	span.SetTag("grpc.status", codes.OK)
 	return ImageId, nil
 }
 
@@ -257,14 +254,13 @@ func (s *ImagesStorageService) ReplaceImage(
 	ctx context.Context,
 	in *img_storage_serv.ReplaceImageRequest,
 ) (*img_storage_serv.ReplaceImageResponce, error) {
-
 	span, ctx := opentracing.StartSpanFromContext(ctx,
 		"ImagesStorageService.ReplaceImage")
 	defer span.Finish()
-	var err error
-	defer span.SetTag("grpc.status", grpc_errors.GetGrpcCode(err))
 
-	if err = s.checkImage(ctx, in.ImageData); err != nil {
+	if err := s.checkImage(ctx, in.ImageData); err != nil {
+		span.SetTag("grpc.status", status.Code(err))
+		ext.LogError(span, err)
 		return nil, err
 	}
 
@@ -273,18 +269,19 @@ func (s *ImagesStorageService) ReplaceImage(
 	if in.CreateIfNotExist && !imageExist {
 		imageID, err := s.saveImage(ctx, in.ImageData, in.Category)
 		if err != nil {
+			span.SetTag("grpc.status", status.Code(err))
+			ext.LogError(span, err)
 			return nil, err
 		}
 		return &img_storage_serv.ReplaceImageResponce{ImageId: imageID}, nil
 	} else if !imageExist {
-		err = s.errHandler.createErrorResponce(ErrCantFindImageByID, "")
-		return nil, err
+		return nil, s.errHandler.createErrorResponceWithSpan(span, ErrCantFindImageByID, "")
 	}
 	if err := s.imageStorage.RewriteImage(ctx, in.ImageData, in.ImageId, in.Category); err != nil {
-		err = s.errHandler.createErrorResponce(ErrCantReplaceImage, err.Error())
-		return nil, err
+		return nil, s.errHandler.createErrorResponceWithSpan(span, ErrCantReplaceImage, err.Error())
 	}
 
+	span.SetTag("grpc.status", codes.OK)
 	return &img_storage_serv.ReplaceImageResponce{ImageId: in.ImageId}, nil
 }
 

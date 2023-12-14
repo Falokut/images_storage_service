@@ -12,12 +12,13 @@ import (
 	"testing"
 	"time"
 
-	logging "github.com/Falokut/online_cinema_ticket_office.loggerwrapper"
+	"github.com/Falokut/images_storage_service/internal/repository"
 	mock_repository "github.com/Falokut/images_storage_service/internal/repository/mocks"
 	"github.com/Falokut/images_storage_service/internal/service"
 	"github.com/Falokut/images_storage_service/pkg/images_storage_service/v1/protos"
 	"github.com/Falokut/images_storage_service/pkg/metrics"
 	mock_metrics "github.com/Falokut/images_storage_service/pkg/metrics/mocks"
+	logging "github.com/Falokut/online_cinema_ticket_office.loggerwrapper"
 	"github.com/sirupsen/logrus"
 
 	"github.com/golang/mock/gomock"
@@ -125,7 +126,7 @@ func TestGetImage(t *testing.T) {
 				ctx context.Context, imageID string, relativePath string) {
 				s.EXPECT().
 					GetImage(gomock.Any(), imageID, relativePath).
-					Return(nil, os.ErrNotExist).
+					Return(nil, repository.ErrNotExist).
 					Times(1)
 			},
 			expectedStatus: codes.NotFound,

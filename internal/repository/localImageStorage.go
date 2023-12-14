@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
 	"github.com/sirupsen/logrus"
 )
 
@@ -64,11 +65,14 @@ func (s *LocalImageStorage) GetImage(ctx context.Context, filename string, relat
 	relativePath = filepath.Clean(fmt.Sprintf("%s/%s/%s", s.basePath, relativePath, filename))
 
 	image, err := os.ReadFile(relativePath)
+	if errors.Is(err, os.ErrNotExist) {
+		ext.LogError(span, err)
+		return []byte{}, ErrNotExist
+	}
 	if err != nil {
+		ext.LogError(span, err)
 		return []byte{}, err
 	}
-
-	s.logger.Info("Image getted")
 	return image, nil
 }
 
@@ -87,10 +91,12 @@ func (s *LocalImageStorage) DeleteImage(ctx context.Context, filename string, re
 	defer wg.Done()
 	relativePath = filepath.Clean(fmt.Sprintf("%s/%s/%s", s.basePath, relativePath, filename))
 	err := os.Remove(relativePath)
-	if err == os.ErrNotExist {
+	if errors.Is(err, os.ErrNotExist) {
+		ext.LogError(span, err)
 		return ErrNotExist
 	}
 	if err != nil {
+		ext.LogError(span, err)
 		return err
 	}
 
@@ -106,7 +112,12 @@ func (s *LocalImageStorage) RewriteImage(ctx context.Context, img []byte, filena
 	relativePath = filepath.Clean(fmt.Sprintf("%s/%s/%s", s.basePath, relativePath, filename))
 
 	f, err := os.OpenFile(relativePath, os.O_RDWR|os.O_TRUNC, 0755)
+	if errors.Is(err, os.ErrNotExist) {
+		ext.LogError(span, err)
+		return ErrNotExist
+	}
 	if err != nil {
+		ext.LogError(span, err)
 		return err
 	}
 

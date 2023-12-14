@@ -6,6 +6,8 @@ import (
 
 	"github.com/Falokut/grpc_errors"
 	img_storage_serv "github.com/Falokut/images_storage_service/pkg/images_storage_service/v1/protos"
+	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -45,6 +47,27 @@ func newErrorHandler(logger *logrus.Logger) errorHandler {
 	return errorHandler{
 		logger: logger,
 	}
+}
+
+func (e *errorHandler) createErrorResponceWithSpan(span opentracing.Span, err error, developerMessage string) error {
+	if err == nil {
+		return nil
+	}
+
+	span.SetTag("grpc.status", grpc_errors.GetGrpcCode(err))
+	ext.LogError(span, err)
+	return e.createErrorResponce(err, developerMessage)
+}
+
+func (e *errorHandler) createExtendedErrorResponceWithSpan(span opentracing.Span,
+	err error, developerMessage, userMessage string) error {
+	if err == nil {
+		return nil
+	}
+
+	span.SetTag("grpc.status", grpc_errors.GetGrpcCode(err))
+	ext.LogError(span, err)
+	return e.createExtendedErrorResponce(err, developerMessage, userMessage)
 }
 
 func (e *errorHandler) createErrorResponce(err error, developerMessage string) error {
