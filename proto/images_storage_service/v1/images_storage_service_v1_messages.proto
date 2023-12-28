@@ -11,7 +11,7 @@ message UploadImageRequest {
 }
 
 message StreamingUploadImageRequest {
-    // Can be empty
+    // Can be empty, no special characters
     string category = 1 [json_name = "category"]; 
     bytes data = 2 [json_name = "data"];
 }

@@ -80,7 +80,7 @@ type StreamingUploadImageRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// Can be empty
+	// Can be empty, no special characters
 	Category string `protobuf:"bytes,1,opt,name=category,proto3" json:"category,omitempty"`
 	Data     []byte `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
 }

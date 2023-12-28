@@ -16,3 +16,6 @@ prometheus:
   server_config:
     host: 0.0.0.0
     port: 7000
+
+minio:
+  endpoint: "minio_gateway:9000"

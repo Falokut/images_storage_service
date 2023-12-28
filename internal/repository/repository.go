@@ -11,10 +11,9 @@ var (
 
 //go:generate mockgen -source=repository.go -destination=mocks/imageStorage.go
 type ImageStorage interface {
-	SaveImage(ctx context.Context, img []byte, filename string, relativePath string) error
-	GetImage(ctx context.Context, imageID string, relativePath string) ([]byte, error)
-	IsImageExist(ctx context.Context, imageID string, relativePath string) bool
-	DeleteImage(ctx context.Context, imageID string, relativePath string) error
-	RewriteImage(ctx context.Context, img []byte, filename string, relativePath string) error
-	Shutdown()
+	SaveImage(ctx context.Context, img []byte, filename string, category string) error
+	GetImage(ctx context.Context, imageID string, category string) ([]byte, error)
+	IsImageExist(ctx context.Context, imageID string, category string) bool
+	DeleteImage(ctx context.Context, imageID string, category string) error
+	RewriteImage(ctx context.Context, img []byte, filename string, category string) error
 }

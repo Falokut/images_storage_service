@@ -4,6 +4,7 @@
 + [Params info](#configuration-params-info)
     + [Jaeger config](#jaeger-config)
     + [Prometheus config](#prometheus-config)
+    + [Minio config](#minio-config)
 + [Author](#author)
 + [License](#license)
 
@@ -14,6 +15,7 @@ if supported values is empty, then any type values are supported
 |-|-|-|-|-|-|
 | log_level   |      | LOG_LEVEL  |   string   |      logging level        | panic, fatal, error, warning, warn, info, debug, trace|
 | healthcheck_port   |      | HEALTHCHECK_PORT  |   string   |     port for healthcheck| any valid port that is not occupied by other services. The string should not contain delimiters, only the port number|
+| storage_mode   |      | STORAGE_MODE  |   string   |service storage mode| MINIO or LOCAL, LOCAL is default, case insensitive|
 | base_local_storage_path   |      | BASE_LOCAL_STORAGE_PATH  |   string   |path of images storage(relative or absolute path)||
 | max_image_size   |      | MAX_IMAGE_SIZE  |   int   |max image size in bytes| only positive values|
 | host   |  listen    | HOST  |   string   |  ip address or host to listen   |  |
@@ -22,6 +24,7 @@ if supported values is empty, then any type values are supported
 |service_name|  prometheus    | PROMETHEUS_SERVICE_NAME | string |  service name, thats will show in prometheus  ||
 |server_config|  prometheus    |   | nested yml configuration  [metrics server config](#prometheus-config) | |
 |jaeger|||nested yml configuration  [jaeger config](#jaeger-config)|configuration for jaeger connection ||
+|minio|||nested yml configuration  [minio config](#minio-config)|configuration for minio connection ||
 
 ## Jaeger config
 
@@ -36,6 +39,16 @@ if supported values is empty, then any type values are supported
 |-|-|-|-|-|
 |host|METRIC_HOST|string|ip address or host to listen for prometheus service||
 |port|METRIC_PORT|string|port to listen for  of prometheus service| any valid port that is not occupied by other services. The string should not contain delimiters, only the port number|
+
+
+
+# Minio config
+|yml name| env name|param type| description | supported values |
+|-|-|-|-|-|
+|endpoint|MINIO_ENDPOINT|string|ip address or host to connect to the minio||
+|access_key_id|MINIO_ACCESS_KEY_ID|string|secret id(like login) to access to minio||
+|secret_access_key|MINIO_SECRET_ACCESS_KEY|string|secret(like password) to access to minio||
+|secure|MINIO_SECURE|bool|enable ssh or not||
 
 # Docs
 [Swagger docs](swagger/docs/images_storage_service_v1.swagger.json)

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	server "github.com/Falokut/grpc_rest_server"
@@ -17,15 +18,13 @@ import (
 	logging "github.com/Falokut/online_cinema_ticket_office.loggerwrapper"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
-	"github.com/sirupsen/logrus"
-
 	"github.com/opentracing/opentracing-go"
+	"github.com/sirupsen/logrus"
 )
 
 func main() {
 	logging.NewEntry(logging.FileAndConsoleOutput)
 	logger := logging.GetLogger()
-
 	appCfg := config.GetConfig()
 	log_level, err := logrus.ParseLevel(appCfg.LogLevel)
 	if err != nil {
@@ -41,7 +40,6 @@ func main() {
 	}
 	logger.Info("Jaeger connected")
 	defer closer.Close()
-
 	opentracing.SetGlobalTracer(tracer)
 
 	logger.Info("Metrics initializing")
@@ -57,9 +55,25 @@ func main() {
 		}
 	}()
 
-	logger.Info("Local storage initializing")
-	storage := repository.NewLocalStorage(logger.Logger, appCfg.BaseLocalStoragePath)
-	defer storage.Shutdown()
+	var storage repository.ImageStorage
+	appCfg.StorageMode = strings.ToUpper(appCfg.StorageMode)
+	switch appCfg.StorageMode {
+	case "MINIO":
+		minioStorage, err := repository.NewMinio(repository.MinioConfig{
+			Endpoint:        appCfg.MinioConfig.Endpoint,
+			AccessKeyID:     appCfg.MinioConfig.AccessKeyID,
+			SecretAccessKey: appCfg.MinioConfig.SecretAccessKey,
+			Secure:          appCfg.MinioConfig.Secure,
+		})
+		if err != nil {
+			logger.Fatal(err)
+		}
+		storage = repository.NewMinioStorage(logger.Logger, minioStorage)
+	default:
+		logger.Info("Local storage initializing")
+		storage = repository.NewLocalStorage(logger.Logger, appCfg.BaseLocalStoragePath)
+	}
+
 	logger.Info("Service initializing")
 	service := service.NewImagesStorageService(logger.Logger,
 		service.Config{MaxImageSize: appCfg.MaxImageSize}, storage, metric)

@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"mime"
 	"net/http"
 	"strings"
 
@@ -78,14 +77,14 @@ func (s *ImagesStorageService) UploadImage(ctx context.Context,
 	return &img_storage_serv.UploadImageResponce{ImageId: imageId}, nil
 }
 
-func (s *ImagesStorageService) checkImage(ctx context.Context, Image []byte) error {
+func (s *ImagesStorageService) checkImage(ctx context.Context, image []byte) error {
 	span, _ := opentracing.StartSpanFromContext(ctx, "ImagesStorageService.checkImage")
 	defer span.Finish()
 
-	if len(Image) == 0 {
+	if len(image) == 0 {
 		return s.errHandler.createErrorResponceWithSpan(span, ErrZeroSizeFile, "")
 	}
-	if len(Image) > int(s.cfg.MaxImageSize) {
+	if len(image) > int(s.cfg.MaxImageSize) {
 		return s.errHandler.createExtendedErrorResponceWithSpan(span,
 			ErrImageTooLarge,
 			"",
@@ -95,7 +94,7 @@ func (s *ImagesStorageService) checkImage(ctx context.Context, Image []byte) err
 	}
 
 	s.logger.Info("Checking filetype")
-	if fileType := s.detectFileType(&Image); fileType != "image" {
+	if fileType := s.detectFileType(&image); fileType != "image" {
 		return s.errHandler.createExtendedErrorResponceWithSpan(span, ErrUnsupportedFileType, "", "unsupported file type")
 	}
 
@@ -198,7 +197,6 @@ func (s *ImagesStorageService) GetImage(ctx context.Context,
 	if err != nil {
 		return nil, s.errHandler.createErrorResponceWithSpan(span, ErrInternal, err.Error())
 	}
-	s.logger.Info("Writting responce")
 	span.SetTag("grpc.status", codes.OK)
 	return &httpbody.HttpBody{ContentType: http.DetectContentType(image), Data: image}, nil
 }
@@ -231,18 +229,17 @@ func (s *ImagesStorageService) DeleteImage(ctx context.Context,
 	return &emptypb.Empty{}, nil
 }
 
-func (s *ImagesStorageService) saveImage(ctx context.Context, Image []byte, Category string) (string, error) {
+func (s *ImagesStorageService) saveImage(ctx context.Context, image []byte, category string) (string, error) {
 	s.logger.Info("Start saving image")
 	span, ctx := opentracing.StartSpanFromContext(ctx, "ImagesStorageService.saveImage")
 	defer span.Finish()
-
 	s.logger.Info("Getting file extension")
-	ext, _ := mime.ExtensionsByType(http.DetectContentType(Image))
-	ImageId := uuid.NewString() + ext[0]
 
-	s.metrics.IncBytesUploaded(len(Image))
+	ImageId := uuid.NewString()
+
+	s.metrics.IncBytesUploaded(len(image))
 	s.logger.Info("Calling storage to save image")
-	if err := s.imageStorage.SaveImage(ctx, Image, ImageId, Category); err != nil {
+	if err := s.imageStorage.SaveImage(ctx, image, ImageId, category); err != nil {
 		return "", s.errHandler.createErrorResponceWithSpan(span, ErrCantSaveImage, err.Error())
 	}
 
