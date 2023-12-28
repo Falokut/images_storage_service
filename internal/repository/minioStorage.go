@@ -36,7 +36,7 @@ func NewMinioStorage(logger *logrus.Logger, storage *minio.Client) *MinioStorage
 	return &MinioStorage{logger: logger, storage: storage}
 }
 
-const baseCategory = "image-"
+const baseCategory = "image"
 
 func (s *MinioStorage) SaveImage(ctx context.Context, img []byte, filename string, category string) error {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "MinioStorage.SaveImage")

@@ -18,4 +18,4 @@ prometheus:
     port: 7000
 
 minio:
-  endpoint: "minio_gateway:9000"
+  endpoint: "host.docker.internal:9000"
