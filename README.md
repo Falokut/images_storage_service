@@ -20,6 +20,8 @@ if supported values is empty, then any type values are supported
 | max_image_size   |      | MAX_IMAGE_SIZE  |   int   |max image size in bytes| only positive values|
 | host   |  listen    | HOST  |   string   |  ip address or host to listen   |  |
 | port   |  listen    | PORT  |   string   |  port to listen   | The string should not contain delimiters, only the port number|
+| max_request_size   |  listen    | MAX_REQUEST_SIZE  |   int32   |  max request size in mb, by default 4 mb  |only > 0|
+| max_responce_size   |  listen    | MAX_RESPONCE_SIZE  |   int32   |  max responce size in mb, by default 4 mb   |only > 0|
 | server_mode   |  listen    | SERVER_MODE  |   string   | Server listen mode, Rest API, gRPC or both | GRPC, REST, BOTH|
 |service_name|  prometheus    | PROMETHEUS_SERVICE_NAME | string |  service name, thats will show in prometheus  ||
 |server_config|  prometheus    |   | nested yml configuration  [metrics server config](#prometheus-config) | |

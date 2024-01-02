@@ -22,6 +22,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	kb = 8 << 10
+	mb = kb << 10
+)
+
 func main() {
 	logging.NewEntry(logging.FileAndConsoleOutput)
 	logger := logging.GetLogger()
@@ -76,7 +81,7 @@ func main() {
 
 	logger.Info("Service initializing")
 	service := service.NewImagesStorageService(logger.Logger,
-		service.Config{MaxImageSize: appCfg.MaxImageSize}, storage, metric)
+		service.Config{MaxImageSize: appCfg.MaxImageSize * mb}, storage, metric)
 
 	logger.Info("Server initializing")
 	s := server.NewServer(logger.Logger, service)
@@ -104,5 +109,7 @@ func getListenServerConfig(cfg *config.Config) server.Config {
 			return img_storage_serv.RegisterImagesStorageServiceV1HandlerServer(context.Background(),
 				mux, serv)
 		},
+		MaxRequestSize:  cfg.Listen.MaxRequestSize * mb,
+		MaxResponceSize: cfg.Listen.MaxResponseSize * mb,
 	}
 }

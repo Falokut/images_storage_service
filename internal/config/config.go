@@ -20,14 +20,14 @@ type Config struct {
 		SecretAccessKey string `yaml:"secret_access_key" env:"MINIO_SECRET_ACCESS_KEY"`
 		Secure          bool   `yaml:"secure" env:"MINIO_SECURE"`
 	} `yaml:"minio"`
-
-	// max image size in bytes
 	MaxImageSize int `yaml:"max_image_size" env:"MAX_IMAGE_SIZE"`
 	Listen       struct {
-		Host           string   `yaml:"host" env:"HOST"`
-		Port           string   `yaml:"port" env:"PORT"`
-		AllowedHeaders []string `yaml:"allowed_headers"`
-		Mode           string   `yaml:"server_mode" env:"SERVER_MODE"`
+		Host            string   `yaml:"host" env:"HOST"`
+		Port            string   `yaml:"port" env:"PORT"`
+		AllowedHeaders  []string `yaml:"allowed_headers"`
+		Mode            string   `yaml:"server_mode" env:"SERVER_MODE"`
+		MaxRequestSize  int      `yaml:"max_request_size" env:"MAX_REQUEST_SIZE"`
+		MaxResponseSize int      `yaml:"max_response_size" env:"MAX_RESPONSE_SIZE"`
 	} `yaml:"listen"`
 
 	PrometheusConfig struct {
