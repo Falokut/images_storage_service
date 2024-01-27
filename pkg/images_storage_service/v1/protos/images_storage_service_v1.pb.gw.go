@@ -43,6 +43,23 @@ func request_ImagesStorageServiceV1_UploadImage_0(ctx context.Context, marshaler
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 
+	var (
+		val string
+		ok  bool
+		err error
+		_   = err
+	)
+
+	val, ok = pathParams["category"]
+	if !ok {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "category")
+	}
+
+	protoReq.Category, err = runtime.String(val)
+	if err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "category", err)
+	}
+
 	msg, err := client.UploadImage(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
 
@@ -60,24 +77,57 @@ func local_request_ImagesStorageServiceV1_UploadImage_0(ctx context.Context, mar
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 
+	var (
+		val string
+		ok  bool
+		err error
+		_   = err
+	)
+
+	val, ok = pathParams["category"]
+	if !ok {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "category")
+	}
+
+	protoReq.Category, err = runtime.String(val)
+	if err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "category", err)
+	}
+
 	msg, err := server.UploadImage(ctx, &protoReq)
 	return msg, metadata, err
 
 }
 
-var (
-	filter_ImagesStorageServiceV1_GetImage_0 = &utilities.DoubleArray{Encoding: map[string]int{}, Base: []int(nil), Check: []int(nil)}
-)
-
 func request_ImagesStorageServiceV1_GetImage_0(ctx context.Context, marshaler runtime.Marshaler, client ImagesStorageServiceV1Client, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
 	var protoReq ImageRequest
 	var metadata runtime.ServerMetadata
 
-	if err := req.ParseForm(); err != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	var (
+		val string
+		ok  bool
+		err error
+		_   = err
+	)
+
+	val, ok = pathParams["category"]
+	if !ok {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "category")
 	}
-	if err := runtime.PopulateQueryParameters(&protoReq, req.Form, filter_ImagesStorageServiceV1_GetImage_0); err != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+
+	protoReq.Category, err = runtime.String(val)
+	if err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "category", err)
+	}
+
+	val, ok = pathParams["image_id"]
+	if !ok {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "image_id")
+	}
+
+	protoReq.ImageId, err = runtime.String(val)
+	if err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "image_id", err)
 	}
 
 	msg, err := client.GetImage(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
@@ -89,11 +139,31 @@ func local_request_ImagesStorageServiceV1_GetImage_0(ctx context.Context, marsha
 	var protoReq ImageRequest
 	var metadata runtime.ServerMetadata
 
-	if err := req.ParseForm(); err != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	var (
+		val string
+		ok  bool
+		err error
+		_   = err
+	)
+
+	val, ok = pathParams["category"]
+	if !ok {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "category")
 	}
-	if err := runtime.PopulateQueryParameters(&protoReq, req.Form, filter_ImagesStorageServiceV1_GetImage_0); err != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+
+	protoReq.Category, err = runtime.String(val)
+	if err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "category", err)
+	}
+
+	val, ok = pathParams["image_id"]
+	if !ok {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "image_id")
+	}
+
+	protoReq.ImageId, err = runtime.String(val)
+	if err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "image_id", err)
 	}
 
 	msg, err := server.GetImage(ctx, &protoReq)
@@ -101,19 +171,35 @@ func local_request_ImagesStorageServiceV1_GetImage_0(ctx context.Context, marsha
 
 }
 
-var (
-	filter_ImagesStorageServiceV1_IsImageExist_0 = &utilities.DoubleArray{Encoding: map[string]int{}, Base: []int(nil), Check: []int(nil)}
-)
-
 func request_ImagesStorageServiceV1_IsImageExist_0(ctx context.Context, marshaler runtime.Marshaler, client ImagesStorageServiceV1Client, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
 	var protoReq ImageRequest
 	var metadata runtime.ServerMetadata
 
-	if err := req.ParseForm(); err != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	var (
+		val string
+		ok  bool
+		err error
+		_   = err
+	)
+
+	val, ok = pathParams["category"]
+	if !ok {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "category")
 	}
-	if err := runtime.PopulateQueryParameters(&protoReq, req.Form, filter_ImagesStorageServiceV1_IsImageExist_0); err != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+
+	protoReq.Category, err = runtime.String(val)
+	if err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "category", err)
+	}
+
+	val, ok = pathParams["image_id"]
+	if !ok {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "image_id")
+	}
+
+	protoReq.ImageId, err = runtime.String(val)
+	if err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "image_id", err)
 	}
 
 	msg, err := client.IsImageExist(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
@@ -125,11 +211,31 @@ func local_request_ImagesStorageServiceV1_IsImageExist_0(ctx context.Context, ma
 	var protoReq ImageRequest
 	var metadata runtime.ServerMetadata
 
-	if err := req.ParseForm(); err != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	var (
+		val string
+		ok  bool
+		err error
+		_   = err
+	)
+
+	val, ok = pathParams["category"]
+	if !ok {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "category")
 	}
-	if err := runtime.PopulateQueryParameters(&protoReq, req.Form, filter_ImagesStorageServiceV1_IsImageExist_0); err != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+
+	protoReq.Category, err = runtime.String(val)
+	if err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "category", err)
+	}
+
+	val, ok = pathParams["image_id"]
+	if !ok {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "image_id")
+	}
+
+	protoReq.ImageId, err = runtime.String(val)
+	if err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "image_id", err)
 	}
 
 	msg, err := server.IsImageExist(ctx, &protoReq)
@@ -137,19 +243,35 @@ func local_request_ImagesStorageServiceV1_IsImageExist_0(ctx context.Context, ma
 
 }
 
-var (
-	filter_ImagesStorageServiceV1_DeleteImage_0 = &utilities.DoubleArray{Encoding: map[string]int{}, Base: []int(nil), Check: []int(nil)}
-)
-
 func request_ImagesStorageServiceV1_DeleteImage_0(ctx context.Context, marshaler runtime.Marshaler, client ImagesStorageServiceV1Client, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
 	var protoReq ImageRequest
 	var metadata runtime.ServerMetadata
 
-	if err := req.ParseForm(); err != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	var (
+		val string
+		ok  bool
+		err error
+		_   = err
+	)
+
+	val, ok = pathParams["category"]
+	if !ok {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "category")
 	}
-	if err := runtime.PopulateQueryParameters(&protoReq, req.Form, filter_ImagesStorageServiceV1_DeleteImage_0); err != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+
+	protoReq.Category, err = runtime.String(val)
+	if err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "category", err)
+	}
+
+	val, ok = pathParams["image_id"]
+	if !ok {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "image_id")
+	}
+
+	protoReq.ImageId, err = runtime.String(val)
+	if err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "image_id", err)
 	}
 
 	msg, err := client.DeleteImage(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
@@ -161,11 +283,31 @@ func local_request_ImagesStorageServiceV1_DeleteImage_0(ctx context.Context, mar
 	var protoReq ImageRequest
 	var metadata runtime.ServerMetadata
 
-	if err := req.ParseForm(); err != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	var (
+		val string
+		ok  bool
+		err error
+		_   = err
+	)
+
+	val, ok = pathParams["category"]
+	if !ok {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "category")
 	}
-	if err := runtime.PopulateQueryParameters(&protoReq, req.Form, filter_ImagesStorageServiceV1_DeleteImage_0); err != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+
+	protoReq.Category, err = runtime.String(val)
+	if err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "category", err)
+	}
+
+	val, ok = pathParams["image_id"]
+	if !ok {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "image_id")
+	}
+
+	protoReq.ImageId, err = runtime.String(val)
+	if err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "image_id", err)
 	}
 
 	msg, err := server.DeleteImage(ctx, &protoReq)
@@ -185,6 +327,33 @@ func request_ImagesStorageServiceV1_ReplaceImage_0(ctx context.Context, marshale
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 
+	var (
+		val string
+		ok  bool
+		err error
+		_   = err
+	)
+
+	val, ok = pathParams["category"]
+	if !ok {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "category")
+	}
+
+	protoReq.Category, err = runtime.String(val)
+	if err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "category", err)
+	}
+
+	val, ok = pathParams["image_id"]
+	if !ok {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "image_id")
+	}
+
+	protoReq.ImageId, err = runtime.String(val)
+	if err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "image_id", err)
+	}
+
 	msg, err := client.ReplaceImage(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
 
@@ -200,6 +369,33 @@ func local_request_ImagesStorageServiceV1_ReplaceImage_0(ctx context.Context, ma
 	}
 	if err := marshaler.NewDecoder(newReader()).Decode(&protoReq); err != nil && err != io.EOF {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+
+	var (
+		val string
+		ok  bool
+		err error
+		_   = err
+	)
+
+	val, ok = pathParams["category"]
+	if !ok {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "category")
+	}
+
+	protoReq.Category, err = runtime.String(val)
+	if err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "category", err)
+	}
+
+	val, ok = pathParams["image_id"]
+	if !ok {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "image_id")
+	}
+
+	protoReq.ImageId, err = runtime.String(val)
+	if err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "image_id", err)
 	}
 
 	msg, err := server.ReplaceImage(ctx, &protoReq)
@@ -221,7 +417,7 @@ func RegisterImagesStorageServiceV1HandlerServer(ctx context.Context, mux *runti
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		var err error
 		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/images_storage_service.ImagesStorageServiceV1/UploadImage", runtime.WithHTTPPathPattern("/v1/upload-image"))
+		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/images_storage_service.ImagesStorageServiceV1/UploadImage", runtime.WithHTTPPathPattern("/v1/image/{category}"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -246,7 +442,7 @@ func RegisterImagesStorageServiceV1HandlerServer(ctx context.Context, mux *runti
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		var err error
 		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/images_storage_service.ImagesStorageServiceV1/GetImage", runtime.WithHTTPPathPattern("/v1/image"))
+		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/images_storage_service.ImagesStorageServiceV1/GetImage", runtime.WithHTTPPathPattern("/v1/image/{category}/{image_id}"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -271,7 +467,7 @@ func RegisterImagesStorageServiceV1HandlerServer(ctx context.Context, mux *runti
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		var err error
 		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/images_storage_service.ImagesStorageServiceV1/IsImageExist", runtime.WithHTTPPathPattern("/v1/check-image-existing"))
+		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/images_storage_service.ImagesStorageServiceV1/IsImageExist", runtime.WithHTTPPathPattern("/v1/image/{category}/{image_id}/exist"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -296,7 +492,7 @@ func RegisterImagesStorageServiceV1HandlerServer(ctx context.Context, mux *runti
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		var err error
 		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/images_storage_service.ImagesStorageServiceV1/DeleteImage", runtime.WithHTTPPathPattern("/v1/delete-image"))
+		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/images_storage_service.ImagesStorageServiceV1/DeleteImage", runtime.WithHTTPPathPattern("/v1/image/{category}/{image_id}"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -321,7 +517,7 @@ func RegisterImagesStorageServiceV1HandlerServer(ctx context.Context, mux *runti
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		var err error
 		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/images_storage_service.ImagesStorageServiceV1/ReplaceImage", runtime.WithHTTPPathPattern("/v1/replace-image"))
+		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/images_storage_service.ImagesStorageServiceV1/ReplaceImage", runtime.WithHTTPPathPattern("/v1/image/{category}/{image_id}/replace"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -385,7 +581,7 @@ func RegisterImagesStorageServiceV1HandlerClient(ctx context.Context, mux *runti
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		var err error
 		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/images_storage_service.ImagesStorageServiceV1/UploadImage", runtime.WithHTTPPathPattern("/v1/upload-image"))
+		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/images_storage_service.ImagesStorageServiceV1/UploadImage", runtime.WithHTTPPathPattern("/v1/image/{category}"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -407,7 +603,7 @@ func RegisterImagesStorageServiceV1HandlerClient(ctx context.Context, mux *runti
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		var err error
 		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/images_storage_service.ImagesStorageServiceV1/GetImage", runtime.WithHTTPPathPattern("/v1/image"))
+		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/images_storage_service.ImagesStorageServiceV1/GetImage", runtime.WithHTTPPathPattern("/v1/image/{category}/{image_id}"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -429,7 +625,7 @@ func RegisterImagesStorageServiceV1HandlerClient(ctx context.Context, mux *runti
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		var err error
 		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/images_storage_service.ImagesStorageServiceV1/IsImageExist", runtime.WithHTTPPathPattern("/v1/check-image-existing"))
+		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/images_storage_service.ImagesStorageServiceV1/IsImageExist", runtime.WithHTTPPathPattern("/v1/image/{category}/{image_id}/exist"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -451,7 +647,7 @@ func RegisterImagesStorageServiceV1HandlerClient(ctx context.Context, mux *runti
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		var err error
 		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/images_storage_service.ImagesStorageServiceV1/DeleteImage", runtime.WithHTTPPathPattern("/v1/delete-image"))
+		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/images_storage_service.ImagesStorageServiceV1/DeleteImage", runtime.WithHTTPPathPattern("/v1/image/{category}/{image_id}"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -473,7 +669,7 @@ func RegisterImagesStorageServiceV1HandlerClient(ctx context.Context, mux *runti
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		var err error
 		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/images_storage_service.ImagesStorageServiceV1/ReplaceImage", runtime.WithHTTPPathPattern("/v1/replace-image"))
+		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/images_storage_service.ImagesStorageServiceV1/ReplaceImage", runtime.WithHTTPPathPattern("/v1/image/{category}/{image_id}/replace"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -493,15 +689,15 @@ func RegisterImagesStorageServiceV1HandlerClient(ctx context.Context, mux *runti
 }
 
 var (
-	pattern_ImagesStorageServiceV1_UploadImage_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"v1", "upload-image"}, ""))
+	pattern_ImagesStorageServiceV1_UploadImage_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 1, 0, 4, 1, 5, 2}, []string{"v1", "image", "category"}, ""))
 
-	pattern_ImagesStorageServiceV1_GetImage_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"v1", "image"}, ""))
+	pattern_ImagesStorageServiceV1_GetImage_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 1, 0, 4, 1, 5, 2, 1, 0, 4, 1, 5, 3}, []string{"v1", "image", "category", "image_id"}, ""))
 
-	pattern_ImagesStorageServiceV1_IsImageExist_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"v1", "check-image-existing"}, ""))
+	pattern_ImagesStorageServiceV1_IsImageExist_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 1, 0, 4, 1, 5, 2, 1, 0, 4, 1, 5, 3, 2, 4}, []string{"v1", "image", "category", "image_id", "exist"}, ""))
 
-	pattern_ImagesStorageServiceV1_DeleteImage_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"v1", "delete-image"}, ""))
+	pattern_ImagesStorageServiceV1_DeleteImage_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 1, 0, 4, 1, 5, 2, 1, 0, 4, 1, 5, 3}, []string{"v1", "image", "category", "image_id"}, ""))
 
-	pattern_ImagesStorageServiceV1_ReplaceImage_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"v1", "replace-image"}, ""))
+	pattern_ImagesStorageServiceV1_ReplaceImage_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 1, 0, 4, 1, 5, 2, 1, 0, 4, 1, 5, 3, 2, 4}, []string{"v1", "image", "category", "image_id", "replace"}, ""))
 )
 
 var (

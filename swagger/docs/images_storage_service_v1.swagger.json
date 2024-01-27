@@ -24,14 +24,14 @@
     "application/json"
   ],
   "paths": {
-    "/v1/check-image-existing": {
-      "get": {
-        "operationId": "ImagesStorageServiceV1_IsImageExist",
+    "/v1/image/{category}": {
+      "post": {
+        "operationId": "ImagesStorageServiceV1_UploadImage",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/images_storage_serviceImageExistResponce"
+              "$ref": "#/definitions/images_storage_serviceUploadImageResponce"
             }
           },
           "403": {
@@ -63,15 +63,23 @@
         "parameters": [
           {
             "name": "category",
-            "in": "query",
-            "required": false,
+            "in": "path",
+            "required": true,
             "type": "string"
           },
           {
-            "name": "imageId",
-            "in": "query",
-            "required": false,
-            "type": "string"
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "image": {
+                  "type": "string",
+                  "format": "byte"
+                }
+              }
+            }
           }
         ],
         "tags": [
@@ -79,7 +87,60 @@
         ]
       }
     },
-    "/v1/delete-image": {
+    "/v1/image/{category}/{imageId}": {
+      "get": {
+        "operationId": "ImagesStorageServiceV1_GetImage",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiHttpBody"
+            }
+          },
+          "403": {
+            "description": "Returned when the user does not have permission to access the resource.",
+            "schema": {
+              "type": "string",
+              "format": "string"
+            }
+          },
+          "404": {
+            "description": "Returned when the resource does not exist.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          },
+          "500": {
+            "description": "Something went wrong.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "category",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "imageId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "ImagesStorageServiceV1"
+        ]
+      },
       "delete": {
         "operationId": "ImagesStorageServiceV1_DeleteImage",
         "responses": {
@@ -119,14 +180,14 @@
         "parameters": [
           {
             "name": "category",
-            "in": "query",
-            "required": false,
+            "in": "path",
+            "required": true,
             "type": "string"
           },
           {
             "name": "imageId",
-            "in": "query",
-            "required": false,
+            "in": "path",
+            "required": true,
             "type": "string"
           }
         ],
@@ -135,14 +196,14 @@
         ]
       }
     },
-    "/v1/image": {
+    "/v1/image/{category}/{imageId}/exist": {
       "get": {
-        "operationId": "ImagesStorageServiceV1_GetImage",
+        "operationId": "ImagesStorageServiceV1_IsImageExist",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/apiHttpBody"
+              "$ref": "#/definitions/images_storage_serviceImageExistResponce"
             }
           },
           "403": {
@@ -174,14 +235,14 @@
         "parameters": [
           {
             "name": "category",
-            "in": "query",
-            "required": false,
+            "in": "path",
+            "required": true,
             "type": "string"
           },
           {
             "name": "imageId",
-            "in": "query",
-            "required": false,
+            "in": "path",
+            "required": true,
             "type": "string"
           }
         ],
@@ -190,7 +251,7 @@
         ]
       }
     },
-    "/v1/replace-image": {
+    "/v1/image/{category}/{imageId}/replace": {
       "post": {
         "operationId": "ImagesStorageServiceV1_ReplaceImage",
         "responses": {
@@ -228,62 +289,32 @@
         },
         "parameters": [
           {
-            "name": "body",
-            "in": "body",
+            "name": "category",
+            "in": "path",
             "required": true,
-            "schema": {
-              "$ref": "#/definitions/images_storage_serviceReplaceImageRequest"
-            }
-          }
-        ],
-        "tags": [
-          "ImagesStorageServiceV1"
-        ]
-      }
-    },
-    "/v1/upload-image": {
-      "post": {
-        "operationId": "ImagesStorageServiceV1_UploadImage",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/images_storage_serviceUploadImageResponce"
-            }
+            "type": "string"
           },
-          "403": {
-            "description": "Returned when the user does not have permission to access the resource.",
-            "schema": {
-              "type": "string",
-              "format": "string"
-            }
+          {
+            "name": "imageId",
+            "in": "path",
+            "required": true,
+            "type": "string"
           },
-          "404": {
-            "description": "Returned when the resource does not exist.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          },
-          "500": {
-            "description": "Something went wrong.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
           {
             "name": "body",
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/images_storage_serviceUploadImageRequest"
+              "type": "object",
+              "properties": {
+                "image_data": {
+                  "type": "string",
+                  "format": "byte"
+                },
+                "create_if_not_exist": {
+                  "type": "boolean"
+                }
+              }
             }
           }
         ],
@@ -325,42 +356,12 @@
         }
       }
     },
-    "images_storage_serviceReplaceImageRequest": {
-      "type": "object",
-      "properties": {
-        "category": {
-          "type": "string"
-        },
-        "imageId": {
-          "type": "string"
-        },
-        "image_data": {
-          "type": "string",
-          "format": "byte"
-        },
-        "create_if_not_exist": {
-          "type": "boolean"
-        }
-      }
-    },
     "images_storage_serviceReplaceImageResponce": {
       "type": "object",
       "properties": {
         "imageId": {
           "type": "string",
           "title": "returns only if in request CreateIfNotExist(create_if_not_exist) = true,\notherwise this field will be empty"
-        }
-      }
-    },
-    "images_storage_serviceUploadImageRequest": {
-      "type": "object",
-      "properties": {
-        "category": {
-          "type": "string"
-        },
-        "image": {
-          "type": "string",
-          "format": "byte"
         }
       }
     },

@@ -70,33 +70,33 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
 service ImagesStorageServiceV1 {
   rpc UploadImage(UploadImageRequest) returns (UploadImageResponce) {
     option (google.api.http) = {
-      post : "/v1/upload-image"
-      body : "*"
+      post: "/v1/image/{category}"
+      body: "*"
     };
   };
 
   rpc StreamingUploadImage(stream StreamingUploadImageRequest) returns (UploadImageResponce) {};
   rpc GetImage(ImageRequest) returns (google.api.HttpBody) {
     option (google.api.http) = {
-      get : "/v1/image"
+      get: "/v1/image/{category}/{image_id}"
     };
   };
 
   rpc IsImageExist(ImageRequest) returns (ImageExistResponce) {
     option (google.api.http) = {
-      get : "/v1/check-image-existing"
+      get: "/v1/image/{category}/{image_id}/exist"
     };
   };
   
   rpc DeleteImage(ImageRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
-      delete : "/v1/delete-image"
+      delete : "/v1/image/{category}/{image_id}"
     };
   };
 
   rpc ReplaceImage(ReplaceImageRequest) returns (ReplaceImageResponce) {
     option (google.api.http) = {
-      post : "/v1/replace-image"
+      post : "/v1/image/{category}/{image_id}/replace"
       body : "*"
     };
   };
