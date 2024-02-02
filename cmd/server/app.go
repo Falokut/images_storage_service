@@ -3,12 +3,15 @@ package main
 import (
 	"context"
 	"errors"
+	"net/http"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 
 	server "github.com/Falokut/grpc_rest_server"
+	"github.com/Falokut/healthcheck"
 	"github.com/Falokut/images_storage_service/internal/config"
 	"github.com/Falokut/images_storage_service/internal/repository"
 	"github.com/Falokut/images_storage_service/internal/service"
@@ -28,69 +31,125 @@ const (
 )
 
 func main() {
-	logging.NewEntry(logging.FileAndConsoleOutput)
+	logging.NewEntry(logging.ConsoleOutput)
 	logger := logging.GetLogger()
-	appCfg := config.GetConfig()
-	log_level, err := logrus.ParseLevel(appCfg.LogLevel)
+	cfg := config.GetConfig()
+
+	logLevel, err := logrus.ParseLevel(cfg.LogLevel)
 	if err != nil {
 		logger.Fatal(err)
 	}
-	logger.Logger.SetLevel(log_level)
-	if appCfg.MaxImageSize <= 0 {
-		logger.Fatal("Max image size less or equal zero")
-	}
-	tracer, closer, err := jaegerTracer.InitJaeger(appCfg.JaegerConfig)
+	logger.Logger.SetLevel(logLevel)
+
+	tracer, closer, err := jaegerTracer.InitJaeger(cfg.JaegerConfig)
 	if err != nil {
-		logger.Fatal("cannot create tracer", err)
+		logger.Errorf("Shutting down, error while creating tracer %v", err)
+		return
 	}
 	logger.Info("Jaeger connected")
 	defer closer.Close()
 	opentracing.SetGlobalTracer(tracer)
 
 	logger.Info("Metrics initializing")
-	metric, err := metrics.CreateMetrics(appCfg.PrometheusConfig.Name)
+	metric, err := metrics.CreateMetrics(cfg.PrometheusConfig.Name)
 	if err != nil {
-		logger.Fatal(err)
+		logger.Errorf("Shutting down, error while creating metrics %v", err)
+		return
 	}
 
+	shutdown := make(chan error, 1)
 	go func() {
 		logger.Info("Metrics server running")
-		if err := metrics.RunMetricServer(appCfg.PrometheusConfig.ServerConfig); err != nil {
-			logger.Fatal(err)
+		if err := metrics.RunMetricServer(cfg.PrometheusConfig.ServerConfig); err != nil {
+			logger.Errorf("Shutting down, error while running metrics server %v", err)
+			shutdown <- err
+			return
 		}
 	}()
 
 	var storage repository.ImageStorage
-	appCfg.StorageMode = strings.ToUpper(appCfg.StorageMode)
-	switch appCfg.StorageMode {
+	cfg.StorageMode = strings.ToUpper(cfg.StorageMode)
+	switch cfg.StorageMode {
 	case "MINIO":
 		minioStorage, err := repository.NewMinio(repository.MinioConfig{
-			Endpoint:        appCfg.MinioConfig.Endpoint,
-			AccessKeyID:     appCfg.MinioConfig.AccessKeyID,
-			SecretAccessKey: appCfg.MinioConfig.SecretAccessKey,
-			Secure:          appCfg.MinioConfig.Secure,
+			Endpoint:        cfg.MinioConfig.Endpoint,
+			AccessKeyID:     cfg.MinioConfig.AccessKeyID,
+			SecretAccessKey: cfg.MinioConfig.SecretAccessKey,
+			Secure:          cfg.MinioConfig.Secure,
 		})
 		if err != nil {
-			logger.Fatal(err)
+			logger.Errorf("Shutting down, error while connecting to the minio storage: %v", err)
+			return
 		}
 		storage = repository.NewMinioStorage(logger.Logger, minioStorage)
+		go func() {
+			logger.Info("Healthcheck initializing")
+			healthcheckManager := healthcheck.NewHealthManager(logger.Logger,
+				[]healthcheck.HealthcheckResource{}, cfg.HealthcheckPort, func(ctx context.Context) error {
+					healthcheckTime, ok := ctx.Deadline()
+					if !ok {
+						healthcheckTime = time.Now().Add(time.Second * 5)
+					}
+					dur := time.Until(healthcheckTime)
+					cancel, err := minioStorage.HealthCheck(dur)
+					if err != nil {
+						return err
+					}
+					defer cancel()
+
+					if minioStorage.IsOffline() {
+						return errors.New("minio storage offline")
+					}
+
+					return nil
+				})
+			if err := healthcheckManager.RunHealthcheckEndpoint(); err != nil {
+				logger.Errorf("Shutting down, error while running healthcheck endpoint %s", err.Error())
+				shutdown <- err
+				return
+			}
+		}()
 	default:
 		logger.Info("Local storage initializing")
-		storage = repository.NewLocalStorage(logger.Logger, appCfg.BaseLocalStoragePath)
+		storage = repository.NewLocalStorage(logger.Logger, cfg.BaseLocalStoragePath)
+
+		go func() {
+			mux := http.NewServeMux()
+			mux.HandleFunc("/healthcheck", func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+			})
+			if err := http.ListenAndServe(":"+cfg.HealthcheckPort, mux); err != nil {
+				logger.Errorf("Shutting down, error while running healthcheck endpoint %s", err.Error())
+				shutdown <- err
+				return
+			}
+		}()
 	}
 
 	logger.Info("Service initializing")
 	service := service.NewImagesStorageService(logger.Logger,
-		service.Config{MaxImageSize: appCfg.MaxImageSize * mb}, storage, metric)
+		service.Config{MaxImageSize: cfg.MaxImageSize * mb}, storage, metric)
 
 	logger.Info("Server initializing")
 	s := server.NewServer(logger.Logger, service)
-	s.Run(getListenServerConfig(appCfg), metric, nil, nil)
+	go func() {
+		if err := s.Run(getListenServerConfig(cfg), metric, nil, nil); err != nil {
+			logger.Errorf("Shutting down, error while running server %s", err.Error())
+			shutdown <- err
+			return
+		}
+	}()
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGHUP, syscall.SIGTERM)
 
-	<-quit
+	select {
+	case <-quit:
+		break
+	case <-shutdown:
+		break
+	}
+
 	s.Shutdown()
 }
 
