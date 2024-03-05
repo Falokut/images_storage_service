@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	"net/http"
 	"os"
 	"os/signal"
 	"strings"
@@ -13,12 +12,13 @@ import (
 	server "github.com/Falokut/grpc_rest_server"
 	"github.com/Falokut/healthcheck"
 	"github.com/Falokut/images_storage_service/internal/config"
+	"github.com/Falokut/images_storage_service/internal/handler"
 	"github.com/Falokut/images_storage_service/internal/repository"
 	"github.com/Falokut/images_storage_service/internal/service"
 	img_storage_serv "github.com/Falokut/images_storage_service/pkg/images_storage_service/v1/protos"
 	jaegerTracer "github.com/Falokut/images_storage_service/pkg/jaeger"
+	"github.com/Falokut/images_storage_service/pkg/logging"
 	"github.com/Falokut/images_storage_service/pkg/metrics"
-	logging "github.com/Falokut/online_cinema_ticket_office.loggerwrapper"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/opentracing/opentracing-go"
@@ -113,25 +113,25 @@ func main() {
 		logger.Info("Local storage initializing")
 		storage = repository.NewLocalStorage(logger.Logger, cfg.BaseLocalStoragePath)
 
-		go func() {
-			mux := http.NewServeMux()
-			mux.HandleFunc("/healthcheck", func(w http.ResponseWriter, r *http.Request) {
-				w.WriteHeader(http.StatusOK)
-			})
-			if err := http.ListenAndServe(":"+cfg.HealthcheckPort, mux); err != nil {
-				logger.Errorf("Shutting down, error while running healthcheck endpoint %s", err.Error())
-				shutdown <- err
-				return
-			}
-		}()
+		healthcheckManager := healthcheck.NewHealthManager(logger.Logger,
+			[]healthcheck.HealthcheckResource{}, cfg.HealthcheckPort, func(ctx context.Context) error { return nil })
+		if err := healthcheckManager.RunHealthcheckEndpoint(); err != nil {
+			logger.Errorf("Shutting down, error while running healthcheck endpoint %s", err.Error())
+			shutdown <- err
+			return
+		}
 	}
 
 	logger.Info("Service initializing")
-	service := service.NewImagesStorageService(logger.Logger,
-		service.Config{MaxImageSize: cfg.MaxImageSize * mb}, storage, metric)
+	service := service.NewImagesStorageService(logger.Logger, metric, storage,
+		service.Config{MaxImageSize: cfg.MaxImageSize * mb})
+		
+	logger.Info("Handler initializing")
+	handler := handler.NewImagesStorageServiceHandler(logger.Logger,
+		handler.Config{MaxImageSize: cfg.MaxImageSize * mb}, service)
 
 	logger.Info("Server initializing")
-	s := server.NewServer(logger.Logger, service)
+	s := server.NewServer(logger.Logger, handler)
 	go func() {
 		if err := s.Run(getListenServerConfig(cfg), metric, nil, nil); err != nil {
 			logger.Errorf("Shutting down, error while running server %s", err.Error())

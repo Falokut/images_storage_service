@@ -35,84 +35,73 @@ func (m *MockImageStorage) EXPECT() *MockImageStorageMockRecorder {
 }
 
 // DeleteImage mocks base method.
-func (m *MockImageStorage) DeleteImage(ctx context.Context, imageID, relativePath string) error {
+func (m *MockImageStorage) DeleteImage(ctx context.Context, imageID, category string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteImage", ctx, imageID, relativePath)
+	ret := m.ctrl.Call(m, "DeleteImage", ctx, imageID, category)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // DeleteImage indicates an expected call of DeleteImage.
-func (mr *MockImageStorageMockRecorder) DeleteImage(ctx, imageID, relativePath interface{}) *gomock.Call {
+func (mr *MockImageStorageMockRecorder) DeleteImage(ctx, imageID, category interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteImage", reflect.TypeOf((*MockImageStorage)(nil).DeleteImage), ctx, imageID, relativePath)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteImage", reflect.TypeOf((*MockImageStorage)(nil).DeleteImage), ctx, imageID, category)
 }
 
 // GetImage mocks base method.
-func (m *MockImageStorage) GetImage(ctx context.Context, imageID, relativePath string) ([]byte, error) {
+func (m *MockImageStorage) GetImage(ctx context.Context, imageID, category string) ([]byte, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetImage", ctx, imageID, relativePath)
+	ret := m.ctrl.Call(m, "GetImage", ctx, imageID, category)
 	ret0, _ := ret[0].([]byte)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetImage indicates an expected call of GetImage.
-func (mr *MockImageStorageMockRecorder) GetImage(ctx, imageID, relativePath interface{}) *gomock.Call {
+func (mr *MockImageStorageMockRecorder) GetImage(ctx, imageID, category interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetImage", reflect.TypeOf((*MockImageStorage)(nil).GetImage), ctx, imageID, relativePath)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetImage", reflect.TypeOf((*MockImageStorage)(nil).GetImage), ctx, imageID, category)
 }
 
 // IsImageExist mocks base method.
-func (m *MockImageStorage) IsImageExist(ctx context.Context, imageID, relativePath string) bool {
+func (m *MockImageStorage) IsImageExist(ctx context.Context, imageID, category string) (bool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "IsImageExist", ctx, imageID, relativePath)
+	ret := m.ctrl.Call(m, "IsImageExist", ctx, imageID, category)
 	ret0, _ := ret[0].(bool)
-	return ret0
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // IsImageExist indicates an expected call of IsImageExist.
-func (mr *MockImageStorageMockRecorder) IsImageExist(ctx, imageID, relativePath interface{}) *gomock.Call {
+func (mr *MockImageStorageMockRecorder) IsImageExist(ctx, imageID, category interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsImageExist", reflect.TypeOf((*MockImageStorage)(nil).IsImageExist), ctx, imageID, relativePath)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsImageExist", reflect.TypeOf((*MockImageStorage)(nil).IsImageExist), ctx, imageID, category)
 }
 
 // RewriteImage mocks base method.
-func (m *MockImageStorage) RewriteImage(ctx context.Context, img []byte, filename, relativePath string) error {
+func (m *MockImageStorage) RewriteImage(ctx context.Context, img []byte, filename, category string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RewriteImage", ctx, img, filename, relativePath)
+	ret := m.ctrl.Call(m, "RewriteImage", ctx, img, filename, category)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // RewriteImage indicates an expected call of RewriteImage.
-func (mr *MockImageStorageMockRecorder) RewriteImage(ctx, img, filename, relativePath interface{}) *gomock.Call {
+func (mr *MockImageStorageMockRecorder) RewriteImage(ctx, img, filename, category interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RewriteImage", reflect.TypeOf((*MockImageStorage)(nil).RewriteImage), ctx, img, filename, relativePath)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RewriteImage", reflect.TypeOf((*MockImageStorage)(nil).RewriteImage), ctx, img, filename, category)
 }
 
 // SaveImage mocks base method.
-func (m *MockImageStorage) SaveImage(ctx context.Context, img []byte, filename, relativePath string) error {
+func (m *MockImageStorage) SaveImage(ctx context.Context, img []byte, filename, category string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SaveImage", ctx, img, filename, relativePath)
+	ret := m.ctrl.Call(m, "SaveImage", ctx, img, filename, category)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SaveImage indicates an expected call of SaveImage.
-func (mr *MockImageStorageMockRecorder) SaveImage(ctx, img, filename, relativePath interface{}) *gomock.Call {
+func (mr *MockImageStorageMockRecorder) SaveImage(ctx, img, filename, category interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveImage", reflect.TypeOf((*MockImageStorage)(nil).SaveImage), ctx, img, filename, relativePath)
-}
-
-// Shutdown mocks base method.
-func (m *MockImageStorage) Shutdown() {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "Shutdown")
-}
-
-// Shutdown indicates an expected call of Shutdown.
-func (mr *MockImageStorageMockRecorder) Shutdown() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Shutdown", reflect.TypeOf((*MockImageStorage)(nil).Shutdown))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveImage", reflect.TypeOf((*MockImageStorage)(nil).SaveImage), ctx, img, filename, category)
 }

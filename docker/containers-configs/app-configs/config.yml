@@ -1,5 +1,5 @@
 log_level: "debug" # supported levels: "panic", "fatal", "error", "warning" or "warn", "info", "debug", "trace"
-max_image_size: 30 
+max_image_size: 30
 healthcheck_port: 7000
 
 listen:
@@ -8,7 +8,7 @@ listen:
   server_mode: "BOTH"
   max_request_size: 30
   max_response_size: 30
-  
+
 jaeger:
   service_name: "Images_Storage_Service"
   address: jaeger:6831

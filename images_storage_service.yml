@@ -9,10 +9,11 @@ networks:
 
 services:
    images_storage_service:
-      build: ./
+      build:
+         dockerfile: alpine.Dockerfile
       command: ./bin/app
       ports:
-         - 8080:8080
+         - 9080:8080
       networks:
          - images_storage_network
          - minio_storage_network
@@ -38,7 +39,7 @@ services:
          replicas: 1
          endpoint_mode: dnsrr
          restart_policy:
-          condition: unless-stopped
+            condition: unless-stopped
       labels:
          servicename: "images_storage_service"
          org.label-schema.group: "monitoring"

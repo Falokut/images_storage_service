@@ -17,11 +17,11 @@ message StreamingUploadImageRequest {
 }
 
 
-message UploadImageResponce {
+message UploadImageResponse {
   string image_id = 1;
 }
 
-message GetImageResponce {
+message GetImageResponse {
     bytes ImageData = 1 [json_name = "image_data"];
 }
 
@@ -30,7 +30,7 @@ message ImageRequest {
   string image_id  = 2;
 }
 
-message ImageExistResponce {
+message ImageExistResponse {
   bool ImageExist = 1[json_name = "image_exist"];
 }
 
@@ -41,7 +41,7 @@ message ReplaceImageRequest {
   bool CreateIfNotExist = 4[json_name = "create_if_not_exist"];
 }
 
-message ReplaceImageResponce {
+message ReplaceImageResponse {
   // returns only if in request CreateIfNotExist(create_if_not_exist) = true,
   // otherwise this field will be empty
   string image_id = 1;

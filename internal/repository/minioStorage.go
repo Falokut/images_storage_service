@@ -3,13 +3,13 @@ package repository
 import (
 	"bytes"
 	"context"
-	"fmt"
+	"errors"
 	"io"
+	"net/http"
 
+	"github.com/Falokut/images_storage_service/internal/models"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
-	"github.com/opentracing/opentracing-go"
-	"github.com/opentracing/opentracing-go/ext"
 	"github.com/sirupsen/logrus"
 )
 
@@ -38,9 +38,9 @@ func NewMinioStorage(logger *logrus.Logger, storage *minio.Client) *MinioStorage
 
 const baseCategory = "image"
 
-func (s *MinioStorage) SaveImage(ctx context.Context, img []byte, filename string, category string) error {
-	span, ctx := opentracing.StartSpanFromContext(ctx, "MinioStorage.SaveImage")
-	defer span.Finish()
+func (s *MinioStorage) SaveImage(ctx context.Context, img []byte, filename string, category string) (err error) {
+	defer s.handleError(ctx, &err, "GetImage")
+
 	category = baseCategory + category
 
 	s.logger.Info("Start saving")
@@ -49,7 +49,6 @@ func (s *MinioStorage) SaveImage(ctx context.Context, img []byte, filename strin
 		s.logger.Warnf("no bucket %s. creating new one...", category)
 		err := s.storage.MakeBucket(ctx, category, minio.MakeBucketOptions{})
 		if err != nil {
-			ext.LogError(span, err)
 			return err
 		}
 	}
@@ -64,99 +63,70 @@ func (s *MinioStorage) SaveImage(ctx context.Context, img []byte, filename strin
 			ContentType: "image/jpeg",
 		})
 	if err != nil {
-		ext.LogError(span, err)
-		return err
+		return
 	}
 
-	span.SetTag("error", false)
-	return nil
+	return
 }
 
-func (s *MinioStorage) GetImage(ctx context.Context, filename string, category string) ([]byte, error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, "MinioStorage.GetImage")
-	defer span.Finish()
+func (s *MinioStorage) GetImage(ctx context.Context, filename string, category string) (image []byte, err error) {
+	defer s.handleError(ctx, &err, "GetImage")
+
 	s.logger.Info("Start getting image")
 	category = baseCategory + category
 
 	obj, err := s.storage.GetObject(ctx, category, filename, minio.GetObjectOptions{})
 	if err != nil {
-		ext.LogError(span, err)
-		errResponse := minio.ToErrorResponse(err)
-		if errResponse.Code == "NoSuchKey" || errResponse.Code == "NoSuchBucket" {
-			return []byte{}, ErrNotExist
-		}
-		return []byte{}, err
+		return
 	}
 	defer obj.Close()
 	objectInfo, err := obj.Stat()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get file. err: %w", err)
+		return
 	}
 
-	buffer := make([]byte, objectInfo.Size)
-	_, err = obj.Read(buffer)
-	if err != nil && err != io.EOF {
-		ext.LogError(span, err)
-		return []byte{}, err
+	image = make([]byte, objectInfo.Size)
+	_, err = obj.Read(image)
+	if err == io.EOF {
+		err = nil
 	}
 
-	span.SetTag("error", false)
-	return buffer, nil
+	return
 }
 
-func (s *MinioStorage) IsImageExist(ctx context.Context, filename string, category string) bool {
-	span, ctx := opentracing.StartSpanFromContext(ctx, "MinioStorage.IsImageExist")
-	defer span.Finish()
+func (s *MinioStorage) IsImageExist(ctx context.Context, filename string, category string) (exist bool, err error) {
 	category = baseCategory + category
 
-	_, err := s.storage.StatObject(ctx, category, filename, minio.StatObjectOptions{})
-	if err != nil {
-		errResponse := minio.ToErrorResponse(err)
-		if errResponse.Code == "NoSuchKey" {
-			span.SetTag("error", false)
-			return false
-		}
-		ext.LogError(span, err)
-		return false
+	_, err = s.storage.StatObject(ctx, category, filename, minio.StatObjectOptions{})
+	s.handleError(ctx, &err, "IsImageExist")
+	if models.Code(err) == models.NotFound {
+		return false, nil
 	}
 
-	span.SetTag("error", false)
-	return true
+	exist = true
+	return
 }
 
-func (s *MinioStorage) DeleteImage(ctx context.Context, filename string, category string) error {
-	span, ctx := opentracing.StartSpanFromContext(ctx, "MinioStorage.DeleteImage")
-	defer span.Finish()
+func (s *MinioStorage) DeleteImage(ctx context.Context, filename string, category string) (err error) {
+	defer s.handleError(ctx, &err, "DeleteImage")
+
 	category = baseCategory + category
 
-	err := s.storage.RemoveObject(ctx, category, filename, minio.RemoveObjectOptions{ForceDelete: true})
-	if err != nil {
-		errResponse := minio.ToErrorResponse(err)
-		ext.LogError(span, err)
-
-		if errResponse.Code == "NoSuchKey" {
-			return ErrNotExist
-		}
-		return err
-	}
-
-	span.SetTag("error", false)
-	return nil
+	err = s.storage.RemoveObject(ctx, category, filename, minio.RemoveObjectOptions{ForceDelete: true})
+	return
 }
 
-func (s *MinioStorage) RewriteImage(ctx context.Context, img []byte, filename string, category string) error {
-	span, ctx := opentracing.StartSpanFromContext(ctx, "MinioStorage.RewriteImage")
-	defer span.Finish()
+func (s *MinioStorage) RewriteImage(ctx context.Context, img []byte, filename string, category string) (err error) {
+	defer s.handleError(ctx, &err, "RewriteImage")
 	category = baseCategory + category
 
 	s.logger.Info("Start saving")
 	exists, err := s.storage.BucketExists(ctx, category)
 	if err != nil || !exists {
 		s.logger.Warnf("no bucket %s. creating new one...", category)
-		err := s.storage.MakeBucket(ctx, category, minio.MakeBucketOptions{})
+		err = s.storage.MakeBucket(ctx, category, minio.MakeBucketOptions{})
 		if err != nil {
-			ext.LogError(span, err)
-			return err
+			return
 		}
 	}
 
@@ -169,11 +139,64 @@ func (s *MinioStorage) RewriteImage(ctx context.Context, img []byte, filename st
 			},
 			ContentType: "image/jpeg",
 		})
-	if err != nil {
-		ext.LogError(span, err)
-		return err
+
+	return
+}
+
+func (s *MinioStorage) handleError(ctx context.Context, err *error, functionName string) {
+	if ctx.Err() != nil {
+		var code models.ErrorCode
+		switch {
+		case errors.Is(ctx.Err(), context.Canceled):
+			code = models.Canceled
+		case errors.Is(ctx.Err(), context.DeadlineExceeded):
+			code = models.DeadlineExceeded
+		}
+		*err = models.Error(code, ctx.Err().Error())
+		s.logError(*err, functionName)
+		return
 	}
 
-	span.SetTag("error", false)
-	return nil
+	if err == nil || *err == nil {
+		return
+	}
+
+	s.logError(*err, functionName)
+	var repoErr = &models.ServiceError{}
+	if !errors.As(*err, &repoErr) {
+		errResp := minio.ToErrorResponse(*err)
+		switch errResp.StatusCode {
+		case http.StatusNotFound:
+			*err = models.Error(models.NotFound, "image not found")
+		case http.StatusBadRequest:
+			*err = models.Error(models.InvalidArgument, errResp.Message)
+		default:
+			*err = models.Error(models.Internal, errResp.Message)
+		}
+
+	}
+}
+
+func (s *MinioStorage) logError(err error, functionName string) {
+	if err == nil {
+		return
+	}
+
+	var repoErr = &models.ServiceError{}
+	if errors.As(err, &repoErr) {
+		s.logger.WithFields(
+			logrus.Fields{
+				"error.function.name": functionName,
+				"error.msg":           repoErr.Msg,
+				"error.code":          repoErr.Code,
+			},
+		).Error("minio images storage error occurred")
+	} else {
+		s.logger.WithFields(
+			logrus.Fields{
+				"error.function.name": functionName,
+				"error.msg":           err.Error(),
+			},
+		).Error("minio images storage error occurred")
+	}
 }

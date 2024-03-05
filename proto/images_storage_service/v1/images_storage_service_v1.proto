@@ -10,7 +10,7 @@ import "protoc-gen-openapiv2/options/annotations.proto";
 
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   schemes : HTTP;
-  // schemes: HTTPS;
+  schemes: HTTPS;
   consumes : "application/json";
   produces : "application/json";
 
@@ -48,7 +48,7 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
     schema: {
       json_schema: {
         ref:
-          "#/definitions/rpcStatus";
+          "#/definitions/googlerpcStatus";
         }
       }
     }
@@ -60,7 +60,7 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
       schema:{
         json_schema: {
           ref:
-            "#/definitions/rpcStatus";
+            "#/definitions/googlerpcStatus";
         }
       }
     }
@@ -68,21 +68,21 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
 };
 
 service ImagesStorageServiceV1 {
-  rpc UploadImage(UploadImageRequest) returns (UploadImageResponce) {
+  rpc UploadImage(UploadImageRequest) returns (UploadImageResponse) {
     option (google.api.http) = {
       post: "/v1/image/{category}"
       body: "*"
     };
   };
 
-  rpc StreamingUploadImage(stream StreamingUploadImageRequest) returns (UploadImageResponce) {};
+  rpc StreamingUploadImage(stream StreamingUploadImageRequest) returns (UploadImageResponse) {};
   rpc GetImage(ImageRequest) returns (google.api.HttpBody) {
     option (google.api.http) = {
       get: "/v1/image/{category}/{image_id}"
     };
   };
 
-  rpc IsImageExist(ImageRequest) returns (ImageExistResponce) {
+  rpc IsImageExist(ImageRequest) returns (ImageExistResponse) {
     option (google.api.http) = {
       get: "/v1/image/{category}/{image_id}/exist"
     };
@@ -94,7 +94,7 @@ service ImagesStorageServiceV1 {
     };
   };
 
-  rpc ReplaceImage(ReplaceImageRequest) returns (ReplaceImageResponce) {
+  rpc ReplaceImage(ReplaceImageRequest) returns (ReplaceImageResponse) {
     option (google.api.http) = {
       post : "/v1/image/{category}/{image_id}/replace"
       body : "*"

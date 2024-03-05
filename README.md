@@ -1,3 +1,13 @@
+# Images storage service #
+
+[![Go Report Card](https://goreportcard.com/badge/github.com/Falokut/images_storage_service)](https://goreportcard.com/report/github.com/Falokut/images_storage_service)
+[![go.dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/github.com/Falokut/images_storage_service)
+![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/Falokut/images_storage_service)
+[![Go](https://github.com/Falokut/images_storage_service/actions/workflows/go.yml/badge.svg?branch=master)](https://github.com/Falokut/images_storage_service/actions/workflows/go.yml) ![](https://changkun.de/urlstat?mode=github&repo=Falokut/images_storage_service)
+[![Go Coverage](https://github.com/Falokut/images_storage_service/wiki/coverage.svg)](https://raw.githack.com/wiki/Falokut/images_storage_service/coverage.html)
+[![License](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
+
+
 # Content
 + [Images storage service](#images-storage-service)
 + [Docs](#swagger-docs)
@@ -21,7 +31,7 @@ if supported values is empty, then any type values are supported
 | host   |  listen    | HOST  |   string   |  ip address or host to listen   |  |
 | port   |  listen    | PORT  |   string   |  port to listen   | The string should not contain delimiters, only the port number|
 | max_request_size   |  listen    | MAX_REQUEST_SIZE  |   int32   |  max request size in mb, by default 4 mb  |only > 0|
-| max_responce_size   |  listen    | MAX_RESPONCE_SIZE  |   int32   |  max responce size in mb, by default 4 mb   |only > 0|
+| max_response_size   |  listen    | MAX_RESPONSE_SIZE  |   int32   |  max response size in mb, by default 4 mb   |only > 0|
 | server_mode   |  listen    | SERVER_MODE  |   string   | Server listen mode, Rest API, gRPC or both | GRPC, REST, BOTH|
 |service_name|  prometheus    | PROMETHEUS_SERVICE_NAME | string |  service name, thats will show in prometheus  ||
 |server_config|  prometheus    |   | nested yml configuration  [metrics server config](#prometheus-config) | |

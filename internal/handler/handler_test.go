@@ -1,4 +1,4 @@
-package service_test
+package handler_test
 
 import (
 	"context"
@@ -12,13 +12,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Falokut/images_storage_service/internal/repository"
+	"github.com/Falokut/images_storage_service/internal/handler"
+	"github.com/Falokut/images_storage_service/internal/models"
 	mock_repository "github.com/Falokut/images_storage_service/internal/repository/mocks"
 	"github.com/Falokut/images_storage_service/internal/service"
+	service_mock "github.com/Falokut/images_storage_service/internal/service/mocks"
 	"github.com/Falokut/images_storage_service/pkg/images_storage_service/v1/protos"
-	"github.com/Falokut/images_storage_service/pkg/metrics"
-	mock_metrics "github.com/Falokut/images_storage_service/pkg/metrics/mocks"
-	logging "github.com/Falokut/online_cinema_ticket_office.loggerwrapper"
+	"github.com/Falokut/images_storage_service/pkg/logging"
 	"github.com/sirupsen/logrus"
 
 	"github.com/golang/mock/gomock"
@@ -35,11 +35,11 @@ const testResoursesDir = "test/resources/"
 const testPNGImageName = "test.png"
 const testJPGImageName = "test.jpg"
 
-type replaceMockBehavior func(s *mock_repository.MockImageStorage, ctx context.Context, img []byte, filename string, relativePath string)
-type isExistMockBehavior func(s *mock_repository.MockImageStorage, ctx context.Context, filename string, relativePath string)
-type saveMockBehavior func(s *mock_repository.MockImageStorage, ctx context.Context, image []byte, filename string, relativePath string)
-type getMockBehavior func(s *mock_repository.MockImageStorage, ctx context.Context, imageID string, relativePath string)
-type deleteMockBehavior func(s *mock_repository.MockImageStorage, ctx context.Context, imageID string, relativePath string)
+type replaceMockBehavior func(s *mock_repository.MockImageStorage, img []byte, filename string, relativePath string)
+type isExistMockBehavior func(s *mock_repository.MockImageStorage, filename string, relativePath string)
+type saveMockBehavior func(s *mock_repository.MockImageStorage, image []byte, relativePath string)
+type getMockBehavior func(s *mock_repository.MockImageStorage, imageID string, relativePath string)
+type deleteMockBehavior func(s *mock_repository.MockImageStorage, imageID string, relativePath string)
 
 func newServer(t *testing.T, register func(srv *grpc.Server)) *grpc.ClientConn {
 	lis := bufconn.Listen(1024 * 1024)
@@ -81,17 +81,7 @@ func newServer(t *testing.T, register func(srv *grpc.Server)) *grpc.ClientConn {
 	return conn
 }
 
-func getMetrics(t *testing.T) metrics.Metrics {
-	c := gomock.NewController(t)
-
-	metr := mock_metrics.NewMockMetrics(c)
-	metr.EXPECT().IncBytesUploaded(gomock.Any()).AnyTimes()
-	metr.EXPECT().IncHits(gomock.Any(), gomock.Any(), gomock.Any).AnyTimes()
-	metr.EXPECT().ObserveResponseTime(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any).AnyTimes()
-	return metr
-}
-
-func newClient(t *testing.T, s *service.ImagesStorageService) *grpc.ClientConn {
+func newClient(t *testing.T, s *handler.ImagesStorageServiceHandler) *grpc.ClientConn {
 	return newServer(t, func(srv *grpc.Server) { protos.RegisterImagesStorageServiceV1Server(srv, s) })
 }
 
@@ -101,7 +91,6 @@ func TestGetImage(t *testing.T) {
 		imageBody      []byte
 		Category       string
 		mockBehavior   getMockBehavior
-		expectedError  error
 		expectedStatus codes.Code
 		caseMessage    string
 	}{
@@ -110,28 +99,27 @@ func TestGetImage(t *testing.T) {
 			imageBody: []byte("203 123 212 121"),
 			Category:  "asweqeqw",
 			mockBehavior: func(s *mock_repository.MockImageStorage,
-				ctx context.Context, imageID string, relativePath string) {
+				imageID string, relativePath string) {
 				s.EXPECT().
 					GetImage(gomock.Any(), imageID, relativePath).
 					Return([]byte("203 123 212 121"), nil).
 					Times(1)
 			},
 			expectedStatus: codes.OK,
-			caseMessage:    "Case num %d, check receiving valid data",
+			caseMessage:    "Case num %d, check repository return valid data",
 		},
 		{
 			ImageID:   uuid.NewString(),
 			imageBody: []byte("123 121 21 21 99 12"),
 			mockBehavior: func(s *mock_repository.MockImageStorage,
-				ctx context.Context, imageID string, relativePath string) {
+				imageID string, relativePath string) {
 				s.EXPECT().
 					GetImage(gomock.Any(), imageID, relativePath).
-					Return(nil, repository.ErrNotExist).
+					Return([]byte{}, models.Error(models.NotFound, "")).
 					Times(1)
 			},
 			expectedStatus: codes.NotFound,
-			expectedError:  service.ErrCantFindImageByID,
-			caseMessage:    "Case num %d, check receiving valid data, but repository return error",
+			caseMessage:    "Case num %d, check repository return not found error",
 		},
 	}
 
@@ -140,16 +128,19 @@ func TestGetImage(t *testing.T) {
 	for i, testCase := range testCases {
 		mockController := gomock.NewController(t)
 		defer mockController.Finish()
+		metr := service_mock.NewMockMetrics(mockController)
+		metr.EXPECT().IncBytesUploaded(gomock.Any()).AnyTimes()
 
 		repo := mock_repository.NewMockImageStorage(mockController)
-		conn := newClient(t, service.NewImagesStorageService(logger.Logger,
-			service.Config{}, repo, getMetrics(t)))
+		service := service.NewImagesStorageService(logger.Logger, metr, repo, service.Config{})
+		conn := newClient(t, handler.NewImagesStorageServiceHandler(logger.Logger,
+			handler.Config{}, service))
 		defer conn.Close()
 
 		client := protos.NewImagesStorageServiceV1Client(conn)
 
 		ctx := context.Background()
-		testCase.mockBehavior(repo, ctx, testCase.ImageID, testCase.Category)
+		testCase.mockBehavior(repo, testCase.ImageID, testCase.Category)
 
 		req := &protos.ImageRequest{Category: testCase.Category, ImageId: testCase.ImageID}
 		res, err := client.GetImage(ctx, req)
@@ -171,21 +162,8 @@ func TestGetImage(t *testing.T) {
 				testCase.imageBody,
 				res.Data,
 				caseMessage,
-				"Service mustn't change image data from repository",
+				"handler mustn't change image data from repository",
 			)
-		}
-		if testCase.expectedError != nil {
-			assert.NotNil(t, err, caseMessage, "Must return error")
-			if testCase.expectedError != nil {
-				err := status.Convert(err)
-				assert.Contains(
-					t,
-					err.Message(),
-					testCase.expectedError.Error(),
-					caseMessage,
-					"Must return expected error",
-				)
-			}
 		}
 	}
 }
@@ -202,34 +180,34 @@ func TestUploadImage(t *testing.T) {
 		mockBehavior   saveMockBehavior
 		expectedStatus codes.Code
 		maxImageSize   int
-		expectedError  error
 		caseMessage    string
 	}{
 		{
 			imageBody: []byte("31231 12312"),
 			Category:  "Test",
-			mockBehavior: func(s *mock_repository.MockImageStorage, ctx context.Context, image []byte, filename string, relativePath string) {
-				s.EXPECT().SaveImage(gomock.Any(), image, gomock.Any(), relativePath).Return(nil).Times(0)
+			mockBehavior: func(s *mock_repository.MockImageStorage,
+				image []byte, relativePath string) {
+				s.EXPECT().SaveImage(gomock.Any(), image, gomock.Any(), relativePath).Times(0)
 			},
 			expectedStatus: codes.InvalidArgument,
-			expectedError:  service.ErrUnsupportedFileType,
 			maxImageSize:   100,
 			caseMessage:    "Case num %d, check non image []byte",
 		},
 		{
 			imageBody: []byte{},
 			Category:  "Test",
-			mockBehavior: func(s *mock_repository.MockImageStorage, ctx context.Context, image []byte, filename string, relativePath string) {
-				s.EXPECT().SaveImage(gomock.Any(), image, gomock.Any(), relativePath).Return(nil).Times(0)
+			mockBehavior: func(s *mock_repository.MockImageStorage,
+				image []byte, relativePath string) {
+				s.EXPECT().SaveImage(gomock.Any(), image, gomock.Any(), relativePath).Times(0)
 			},
 			expectedStatus: codes.InvalidArgument,
-			expectedError:  service.ErrZeroSizeFile,
 			maxImageSize:   1,
 			caseMessage:    "Case num %d, check receiving image with zero size",
 		},
 		{
 			imageBody: imagePNG,
-			mockBehavior: func(s *mock_repository.MockImageStorage, ctx context.Context, image []byte, filename string, relativePath string) {
+			mockBehavior: func(s *mock_repository.MockImageStorage,
+				image []byte, relativePath string) {
 				s.EXPECT().SaveImage(gomock.Any(), image, gomock.Any(), relativePath).Return(nil).Times(1)
 			},
 			expectedStatus: codes.OK,
@@ -238,7 +216,8 @@ func TestUploadImage(t *testing.T) {
 		},
 		{
 			imageBody: imageJPG,
-			mockBehavior: func(s *mock_repository.MockImageStorage, ctx context.Context, image []byte, filename string, relativePath string) {
+			mockBehavior: func(s *mock_repository.MockImageStorage,
+				image []byte, relativePath string) {
 				s.EXPECT().SaveImage(gomock.Any(), image, gomock.Any(), relativePath).Return(nil).Times(1)
 			},
 			expectedStatus: codes.OK,
@@ -248,26 +227,26 @@ func TestUploadImage(t *testing.T) {
 		{
 			imageBody: imagePNG,
 			Category:  "Te132st",
-			mockBehavior: func(s *mock_repository.MockImageStorage, ctx context.Context, image []byte, filename string, relativePath string) {
-				s.EXPECT().SaveImage(gomock.Any(), image, gomock.Any(), relativePath).Return(nil).Times(0)
+			mockBehavior: func(s *mock_repository.MockImageStorage,
+				image []byte, relativePath string) {
+				s.EXPECT().SaveImage(gomock.Any(), image, gomock.Any(), relativePath).Times(0)
 			},
 			expectedStatus: codes.InvalidArgument,
-			expectedError:  service.ErrImageTooLarge,
 			maxImageSize:   len(imagePNG) / 2,
 			caseMessage:    "Case num %d, check receiving image with size bigger than maxSize",
 		},
 		{
 			imageBody: imagePNG,
 			Category:  "Te231st",
-			mockBehavior: func(s *mock_repository.MockImageStorage, ctx context.Context, image []byte, filename string, relativePath string) {
+			mockBehavior: func(s *mock_repository.MockImageStorage,
+				image []byte, relativePath string) {
 				s.EXPECT().
 					SaveImage(gomock.Any(), image, gomock.Any(), relativePath).
-					Return(os.ErrPermission).
+					Return(models.Error(models.Internal, "")).
 					Times(1)
 			},
 			expectedStatus: codes.Internal,
 			maxImageSize:   len(imagePNG),
-			expectedError:  service.ErrCantSaveImage,
 			caseMessage:    "Case num %d, check receiving valid image, but repository return error",
 		},
 	}
@@ -277,15 +256,19 @@ func TestUploadImage(t *testing.T) {
 		mockController := gomock.NewController(t)
 		defer mockController.Finish()
 		repo := mock_repository.NewMockImageStorage(mockController)
+		metr := service_mock.NewMockMetrics(mockController)
+		metr.EXPECT().IncBytesUploaded(gomock.Any()).AnyTimes()
 
-		conn := newClient(t, service.NewImagesStorageService(logger.Logger,
-			service.Config{MaxImageSize: testCase.maxImageSize}, repo, getMetrics(t)))
+		service := service.NewImagesStorageService(logger.Logger, metr,
+			repo, service.Config{MaxImageSize: testCase.maxImageSize})
+		conn := newClient(t, handler.NewImagesStorageServiceHandler(logger.Logger,
+			handler.Config{MaxImageSize: testCase.maxImageSize}, service))
 		defer conn.Close()
 
 		client := protos.NewImagesStorageServiceV1Client(conn)
 
 		ctx := context.Background()
-		testCase.mockBehavior(repo, ctx, testCase.imageBody, "", testCase.Category)
+		testCase.mockBehavior(repo, testCase.imageBody, testCase.Category)
 
 		req := &protos.UploadImageRequest{Category: testCase.Category, Image: testCase.imageBody}
 		res, err := client.UploadImage(ctx, req)
@@ -298,22 +281,12 @@ func TestUploadImage(t *testing.T) {
 			caseMessage,
 			"Must return expected status code",
 		)
+
 		if testCase.expectedStatus == codes.OK {
-			assert.NotNil(t, res, caseMessage)
+			assert.NotNil(t, res.ImageId, caseMessage, "must return valid image id")
 			continue
 		}
 
-		assert.NotNil(t, err, caseMessage, "Must return error")
-		if testCase.expectedError != nil {
-			err := status.Convert(err)
-			assert.Contains(
-				t,
-				err.Message(),
-				testCase.expectedError.Error(),
-				caseMessage,
-				"Must return expected error",
-			)
-		}
 	}
 }
 
@@ -323,13 +296,12 @@ func TestDeleteImage(t *testing.T) {
 		imageID        string
 		mockBehavior   deleteMockBehavior
 		expectedStatus codes.Code
-		expectedError  error
 		caseMessage    string
 	}{
 		{
 			Category: "Test/Any/Category",
 			imageID:  "AnyId.png",
-			mockBehavior: func(s *mock_repository.MockImageStorage, ctx context.Context, imageID, relativePath string) {
+			mockBehavior: func(s *mock_repository.MockImageStorage, imageID, relativePath string) {
 				s.EXPECT().DeleteImage(gomock.Any(), imageID, relativePath).Return(nil).Times(1)
 			},
 			expectedStatus: codes.OK,
@@ -338,11 +310,10 @@ func TestDeleteImage(t *testing.T) {
 		{
 			Category: "Test/Category",
 			imageID:  "23910312.png",
-			mockBehavior: func(s *mock_repository.MockImageStorage, ctx context.Context, imageID, relativePath string) {
-				s.EXPECT().DeleteImage(gomock.Any(), imageID, relativePath).Return(os.ErrPermission).Times(1)
+			mockBehavior: func(s *mock_repository.MockImageStorage, imageID, relativePath string) {
+				s.EXPECT().DeleteImage(gomock.Any(), imageID, relativePath).Return(models.Error(models.Internal, "")).Times(1)
 			},
 			expectedStatus: codes.Internal,
-			expectedError:  service.ErrCantDeleteImage,
 			caseMessage:    "Case num %d, check receiving valid image, but repository return error",
 		},
 	}
@@ -352,17 +323,21 @@ func TestDeleteImage(t *testing.T) {
 		mockController := gomock.NewController(t)
 		defer mockController.Finish()
 		repo := mock_repository.NewMockImageStorage(mockController)
+		metr := service_mock.NewMockMetrics(mockController)
+		metr.EXPECT().IncBytesUploaded(gomock.Any()).Times(0)
 
-		conn := newClient(t, service.NewImagesStorageService(logger.Logger, service.Config{}, repo, getMetrics(t)))
+		service := service.NewImagesStorageService(logger.Logger, metr, repo, service.Config{})
+		conn := newClient(t, handler.NewImagesStorageServiceHandler(logger.Logger,
+			handler.Config{}, service))
 		defer conn.Close()
 
 		client := protos.NewImagesStorageServiceV1Client(conn)
 
 		ctx := context.Background()
-		testCase.mockBehavior(repo, ctx, testCase.imageID, testCase.Category)
+		testCase.mockBehavior(repo, testCase.imageID, testCase.Category)
 
 		req := &protos.ImageRequest{Category: testCase.Category, ImageId: testCase.imageID}
-		res, err := client.DeleteImage(ctx, req)
+		_, err := client.DeleteImage(ctx, req)
 
 		caseMessage := fmt.Sprintf(testCase.caseMessage, i+1)
 
@@ -373,22 +348,6 @@ func TestDeleteImage(t *testing.T) {
 			caseMessage,
 			"Must return expected status code",
 		)
-		if testCase.expectedStatus == codes.OK {
-			assert.NotNil(t, res, caseMessage)
-			continue
-		}
-
-		assert.NotNil(t, err, caseMessage, "Must return error")
-		if testCase.expectedError != nil {
-			err := status.Convert(err)
-			assert.Contains(
-				t,
-				err.Message(),
-				testCase.expectedError.Error(),
-				caseMessage,
-				"Must return expected error",
-			)
-		}
 	}
 }
 
@@ -408,37 +367,41 @@ func TestReplaceImage(t *testing.T) {
 		CreateIfNotExist    bool
 		expectedStatus      codes.Code
 		maxImageSize        int
-		expectedError       error
 		caseMessage         string
 	}{
 
 		{
 			imageBody: []byte("31231 12312"),
 			Category:  "Test",
-			replaceMockBehavior: func(s *mock_repository.MockImageStorage, ctx context.Context, img []byte, filename string, relativePath string) {
-				s.EXPECT().RewriteImage(gomock.Any(), imagePNG, gomock.Any(), relativePath).Times(0)
+			replaceMockBehavior: func(s *mock_repository.MockImageStorage,
+				img []byte, filename string, relativePath string) {
+				s.EXPECT().RewriteImage(gomock.Any(), img, gomock.Any(), relativePath).Times(0)
 			},
-			isExistMockBehavior: func(s *mock_repository.MockImageStorage, ctx context.Context, filename string, relativePath string) {
+			isExistMockBehavior: func(s *mock_repository.MockImageStorage,
+				filename string, relativePath string) {
 				s.EXPECT().IsImageExist(gomock.Any(), filename, relativePath).Times(0)
 			},
-			saveMockBehavior: func(s *mock_repository.MockImageStorage, ctx context.Context, image []byte, filename string, relativePath string) {
+			saveMockBehavior: func(s *mock_repository.MockImageStorage,
+				image []byte, relativePath string) {
 				s.EXPECT().SaveImage(gomock.Any(), image, gomock.Any(), relativePath).Times(0)
 			},
 			expectedStatus: codes.InvalidArgument,
-			expectedError:  service.ErrUnsupportedFileType,
 			maxImageSize:   100,
 			ImageID:        "3212dada",
 			caseMessage:    "Case num %d, check non image []byte",
 		},
 		{
 			imageBody: imagePNG,
-			replaceMockBehavior: func(s *mock_repository.MockImageStorage, ctx context.Context, img []byte, filename string, relativePath string) {
-				s.EXPECT().RewriteImage(gomock.Any(), imagePNG, gomock.Any(), relativePath).Return(nil).Times(1)
+			replaceMockBehavior: func(s *mock_repository.MockImageStorage,
+				img []byte, filename string, relativePath string) {
+				s.EXPECT().RewriteImage(gomock.Any(), img, filename, relativePath).Return(nil).Times(1)
 			},
-			isExistMockBehavior: func(s *mock_repository.MockImageStorage, ctx context.Context, filename string, relativePath string) {
-				s.EXPECT().IsImageExist(gomock.Any(), filename, relativePath).Return(true).Times(1)
+			isExistMockBehavior: func(s *mock_repository.MockImageStorage,
+				filename string, relativePath string) {
+				s.EXPECT().IsImageExist(gomock.Any(), filename, relativePath).Return(true, nil).Times(1)
 			},
-			saveMockBehavior: func(s *mock_repository.MockImageStorage, ctx context.Context, image []byte, filename string, relativePath string) {
+			saveMockBehavior: func(s *mock_repository.MockImageStorage,
+				image []byte, relativePath string) {
 				s.EXPECT().SaveImage(gomock.Any(), image, gomock.Any(), relativePath).Times(0)
 			},
 			expectedStatus: codes.OK,
@@ -449,17 +412,19 @@ func TestReplaceImage(t *testing.T) {
 		{
 			imageBody: imageJPG,
 			Category:  "Test",
-			replaceMockBehavior: func(s *mock_repository.MockImageStorage, ctx context.Context, img []byte, filename string, relativePath string) {
-				s.EXPECT().RewriteImage(gomock.Any(), imagePNG, filename, relativePath).Times(0)
+			replaceMockBehavior: func(s *mock_repository.MockImageStorage,
+				img []byte, filename string, relativePath string) {
+				s.EXPECT().RewriteImage(gomock.Any(), img, filename, relativePath).Times(0)
 			},
-			isExistMockBehavior: func(s *mock_repository.MockImageStorage, ctx context.Context, filename string, relativePath string) {
-				s.EXPECT().IsImageExist(gomock.Any(), filename, relativePath).Return(false).Times(1)
+			isExistMockBehavior: func(s *mock_repository.MockImageStorage,
+				filename string, relativePath string) {
+				s.EXPECT().IsImageExist(gomock.Any(), filename, relativePath).Return(false, nil).Times(1)
 			},
-			saveMockBehavior: func(s *mock_repository.MockImageStorage, ctx context.Context, image []byte, filename string, relativePath string) {
+			saveMockBehavior: func(s *mock_repository.MockImageStorage,
+				image []byte, relativePath string) {
 				s.EXPECT().SaveImage(gomock.Any(), image, gomock.Any(), relativePath).Times(0)
 			},
 			expectedStatus:   codes.NotFound,
-			expectedError:    service.ErrCantFindImageByID,
 			CreateIfNotExist: false,
 			maxImageSize:     len(imagePNG),
 			ImageID:          "3212dada",
@@ -467,14 +432,18 @@ func TestReplaceImage(t *testing.T) {
 		},
 		{
 			imageBody: imageJPG,
-			replaceMockBehavior: func(s *mock_repository.MockImageStorage, ctx context.Context, img []byte, filename string, relativePath string) {
-				s.EXPECT().RewriteImage(gomock.Any(), imagePNG, filename, relativePath).Times(0)
+			replaceMockBehavior: func(s *mock_repository.MockImageStorage,
+				img []byte, filename string, relativePath string) {
+				s.EXPECT().RewriteImage(gomock.Any(), img, filename, relativePath).Times(0)
 			},
-			isExistMockBehavior: func(s *mock_repository.MockImageStorage, ctx context.Context, filename string, relativePath string) {
-				s.EXPECT().IsImageExist(gomock.Any(), filename, relativePath).Return(false).Times(1)
+			isExistMockBehavior: func(s *mock_repository.MockImageStorage,
+				filename string, relativePath string) {
+				s.EXPECT().IsImageExist(gomock.Any(), filename, relativePath).Return(false, nil).Times(1)
 			},
-			saveMockBehavior: func(s *mock_repository.MockImageStorage, ctx context.Context, image []byte, filename string, relativePath string) {
-				s.EXPECT().SaveImage(gomock.Any(), image, gomock.Any(), relativePath).Return(os.ErrPermission).Times(1)
+			saveMockBehavior: func(s *mock_repository.MockImageStorage,
+				image []byte, relativePath string) {
+				s.EXPECT().SaveImage(gomock.Any(), image,
+					gomock.Any(), relativePath).Return(models.Error(models.Internal, "")).Times(1)
 			},
 			expectedStatus:   codes.Internal,
 			ImageID:          "321312312sadqweq",
@@ -484,13 +453,16 @@ func TestReplaceImage(t *testing.T) {
 		},
 		{
 			imageBody: imagePNG,
-			replaceMockBehavior: func(s *mock_repository.MockImageStorage, ctx context.Context, img []byte, filename string, relativePath string) {
-				s.EXPECT().RewriteImage(gomock.Any(), imagePNG, filename, relativePath).Times(0)
+			replaceMockBehavior: func(s *mock_repository.MockImageStorage,
+				img []byte, filename string, relativePath string) {
+				s.EXPECT().RewriteImage(gomock.Any(), img, filename, relativePath).Times(0)
 			},
-			isExistMockBehavior: func(s *mock_repository.MockImageStorage, ctx context.Context, filename string, relativePath string) {
-				s.EXPECT().IsImageExist(gomock.Any(), filename, relativePath).Return(false).Times(1)
+			isExistMockBehavior: func(s *mock_repository.MockImageStorage,
+				filename string, relativePath string) {
+				s.EXPECT().IsImageExist(gomock.Any(), filename, relativePath).Return(false, nil).Times(1)
 			},
-			saveMockBehavior: func(s *mock_repository.MockImageStorage, ctx context.Context, image []byte, filename string, relativePath string) {
+			saveMockBehavior: func(s *mock_repository.MockImageStorage,
+				image []byte, relativePath string) {
 				s.EXPECT().SaveImage(gomock.Any(), image, gomock.Any(), relativePath).Return(nil).Times(1)
 			},
 			expectedStatus:   codes.OK,
@@ -501,13 +473,16 @@ func TestReplaceImage(t *testing.T) {
 		},
 		{
 			imageBody: imagePNG,
-			replaceMockBehavior: func(s *mock_repository.MockImageStorage, ctx context.Context, img []byte, filename string, relativePath string) {
-				s.EXPECT().RewriteImage(gomock.Any(), imagePNG, filename, relativePath).Return(nil).Times(1)
+			replaceMockBehavior: func(s *mock_repository.MockImageStorage,
+				img []byte, filename string, relativePath string) {
+				s.EXPECT().RewriteImage(gomock.Any(), img, filename, relativePath).Return(nil).Times(1)
 			},
-			isExistMockBehavior: func(s *mock_repository.MockImageStorage, ctx context.Context, filename string, relativePath string) {
-				s.EXPECT().IsImageExist(gomock.Any(), filename, relativePath).Return(true).Times(1)
+			isExistMockBehavior: func(s *mock_repository.MockImageStorage,
+				filename string, relativePath string) {
+				s.EXPECT().IsImageExist(gomock.Any(), filename, relativePath).Return(true, nil).Times(1)
 			},
-			saveMockBehavior: func(s *mock_repository.MockImageStorage, ctx context.Context, image []byte, filename string, relativePath string) {
+			saveMockBehavior: func(s *mock_repository.MockImageStorage,
+				image []byte, relativePath string) {
 				s.EXPECT().SaveImage(gomock.Any(), image, gomock.Any(), relativePath).Times(0)
 			},
 			expectedStatus:   codes.OK,
@@ -518,20 +493,23 @@ func TestReplaceImage(t *testing.T) {
 		},
 		{
 			imageBody: imagePNG,
-			replaceMockBehavior: func(s *mock_repository.MockImageStorage, ctx context.Context, img []byte, filename string, relativePath string) {
-				s.EXPECT().RewriteImage(gomock.Any(), imagePNG, filename, relativePath).Return(os.ErrPermission).Times(1)
+			replaceMockBehavior: func(s *mock_repository.MockImageStorage,
+				img []byte, filename string, relativePath string) {
+				s.EXPECT().RewriteImage(gomock.Any(), img, filename, relativePath).Return(models.Error(models.Internal, "")).Times(1)
 			},
-			isExistMockBehavior: func(s *mock_repository.MockImageStorage, ctx context.Context, filename string, relativePath string) {
-				s.EXPECT().IsImageExist(gomock.Any(), filename, relativePath).Return(true).Times(1)
+			isExistMockBehavior: func(s *mock_repository.MockImageStorage,
+				filename string, relativePath string) {
+				s.EXPECT().IsImageExist(gomock.Any(), filename, relativePath).Return(true, nil).Times(1)
 			},
-			saveMockBehavior: func(s *mock_repository.MockImageStorage, ctx context.Context, image []byte, filename string, relativePath string) {
+			saveMockBehavior: func(s *mock_repository.MockImageStorage,
+				image []byte, relativePath string) {
 				s.EXPECT().SaveImage(gomock.Any(), image, gomock.Any(), relativePath).Times(0)
 			},
 			expectedStatus:   codes.Internal,
 			ImageID:          "321312312sadqweq",
 			maxImageSize:     len(imagePNG),
 			CreateIfNotExist: true,
-			caseMessage:      "Case num %d, check receiving valid image without existing image file in repo, but with error while rewriting",
+			caseMessage:      "Case num %d, check receiving valid image with existing image file in repo, but with error while rewriting",
 		},
 	}
 
@@ -540,17 +518,21 @@ func TestReplaceImage(t *testing.T) {
 		mockController := gomock.NewController(t)
 		defer mockController.Finish()
 		repo := mock_repository.NewMockImageStorage(mockController)
+		metr := service_mock.NewMockMetrics(mockController)
+		metr.EXPECT().IncBytesUploaded(gomock.Any()).AnyTimes()
 
-		conn := newClient(t, service.NewImagesStorageService(logger.Logger,
-			service.Config{MaxImageSize: testCase.maxImageSize}, repo, getMetrics(t)))
+		service := service.NewImagesStorageService(logger.Logger,
+			metr, repo, service.Config{MaxImageSize: testCase.maxImageSize})
+		conn := newClient(t, handler.NewImagesStorageServiceHandler(logger.Logger,
+			handler.Config{MaxImageSize: testCase.maxImageSize}, service))
 		defer conn.Close()
 
 		client := protos.NewImagesStorageServiceV1Client(conn)
 
 		ctx := context.Background()
-		testCase.replaceMockBehavior(repo, ctx, testCase.imageBody, testCase.ImageID, testCase.Category)
-		testCase.isExistMockBehavior(repo, ctx, testCase.ImageID, testCase.Category)
-		testCase.saveMockBehavior(repo, ctx, testCase.imageBody, "", testCase.Category)
+		testCase.replaceMockBehavior(repo, testCase.imageBody, testCase.ImageID, testCase.Category)
+		testCase.isExistMockBehavior(repo, testCase.ImageID, testCase.Category)
+		testCase.saveMockBehavior(repo, testCase.imageBody, testCase.Category)
 
 		req := &protos.ReplaceImageRequest{
 			Category:         testCase.Category,
@@ -572,18 +554,6 @@ func TestReplaceImage(t *testing.T) {
 			assert.NotNil(t, res, caseMessage)
 			continue
 		}
-
-		assert.NotNil(t, err, caseMessage, "Must return error")
-		if testCase.expectedError != nil {
-			err := status.Convert(err)
-			assert.Contains(
-				t,
-				err.Message(),
-				testCase.expectedError.Error(),
-				caseMessage,
-				"Must return expected error",
-			)
-		}
 	}
 }
 
@@ -593,25 +563,25 @@ func TestIsImageExist(t *testing.T) {
 		imageID          string
 		mockBehavior     isExistMockBehavior
 		caseMessage      string
-		expectedResponce bool
+		expectedResponse bool
 	}{
 		{
 			imageID:  "AnyID",
 			Category: "AnyPAth/Patrh/ase1",
-			mockBehavior: func(s *mock_repository.MockImageStorage, ctx context.Context, filename string, relativePath string) {
-				s.EXPECT().IsImageExist(gomock.Any(), filename, relativePath).Return(true).Times(1)
+			mockBehavior: func(s *mock_repository.MockImageStorage, filename string, relativePath string) {
+				s.EXPECT().IsImageExist(gomock.Any(), filename, relativePath).Return(true, nil).Times(1)
 			},
-			expectedResponce: true,
-			caseMessage:      "Case num %d, checks responce, if image exist",
+			expectedResponse: true,
+			caseMessage:      "Case num %d, checks response, if image exist",
 		},
 		{
 			imageID:  "AnyID",
 			Category: "AnyPAth/1231asdweqq/ase1",
-			mockBehavior: func(s *mock_repository.MockImageStorage, ctx context.Context, filename string, relativePath string) {
-				s.EXPECT().IsImageExist(gomock.Any(), filename, relativePath).Return(false).Times(1)
+			mockBehavior: func(s *mock_repository.MockImageStorage, filename string, relativePath string) {
+				s.EXPECT().IsImageExist(gomock.Any(), filename, relativePath).Return(false, nil).Times(1)
 			},
-			expectedResponce: false,
-			caseMessage:      "Case num %d, checks responce, if image not exist",
+			expectedResponse: false,
+			caseMessage:      "Case num %d, checks response, if image not exist",
 		},
 	}
 
@@ -620,14 +590,18 @@ func TestIsImageExist(t *testing.T) {
 		mockController := gomock.NewController(t)
 		defer mockController.Finish()
 		repo := mock_repository.NewMockImageStorage(mockController)
+		metr := service_mock.NewMockMetrics(mockController)
+		metr.EXPECT().IncBytesUploaded(gomock.Any()).AnyTimes()
 
-		conn := newClient(t, service.NewImagesStorageService(logger.Logger, service.Config{}, repo, getMetrics(t)))
+		service := service.NewImagesStorageService(logger.Logger, metr, repo, service.Config{})
+		conn := newClient(t, handler.NewImagesStorageServiceHandler(logger.Logger,
+			handler.Config{}, service))
 		defer conn.Close()
 
 		client := protos.NewImagesStorageServiceV1Client(conn)
 
 		ctx := context.Background()
-		testCase.mockBehavior(repo, ctx, testCase.imageID, testCase.Category)
+		testCase.mockBehavior(repo, testCase.imageID, testCase.Category)
 
 		req := &protos.ImageRequest{Category: testCase.Category, ImageId: testCase.imageID}
 		res, err := client.IsImageExist(ctx, req)
@@ -642,8 +616,8 @@ func TestIsImageExist(t *testing.T) {
 			"Must return expected status code",
 		)
 
-		assert.NotNil(t, res, caseMessage, "Must return valid responce")
-		assert.Equal(t, testCase.expectedResponce, res.ImageExist, caseMessage, "Must return expected responce")
+		assert.NotNil(t, res, caseMessage, "Must return valid response")
+		assert.Equal(t, testCase.expectedResponse, res.ImageExist, caseMessage, "Must return expected response")
 		assert.NoError(t, err, caseMessage, "Mustn't return error")
 	}
 }
@@ -660,7 +634,6 @@ func TestStreamingUploadImage(t *testing.T) {
 		mockBehavior   saveMockBehavior
 		expectedStatus codes.Code
 		maxImageSize   int
-		expectedError  error
 		chunkSize      int
 		caseMessage    string
 		cancelContext  bool
@@ -668,28 +641,26 @@ func TestStreamingUploadImage(t *testing.T) {
 		{
 			imageBody: []byte("31231 12312"),
 			Category:  "Test",
-			mockBehavior: func(s *mock_repository.MockImageStorage, ctx context.Context, image []byte, filename string, relativePath string) {
+			mockBehavior: func(s *mock_repository.MockImageStorage, image []byte, relativePath string) {
 				s.EXPECT().SaveImage(gomock.Any(), image, gomock.Any(), relativePath).Return(nil).Times(0)
 			},
 			expectedStatus: codes.InvalidArgument,
-			expectedError:  service.ErrUnsupportedFileType,
 			maxImageSize:   100,
 			caseMessage:    "Case num %d, check non image []byte",
 		},
 		{
 			imageBody: []byte{},
 			Category:  "Test",
-			mockBehavior: func(s *mock_repository.MockImageStorage, ctx context.Context, image []byte, filename string, relativePath string) {
+			mockBehavior: func(s *mock_repository.MockImageStorage, image []byte, relativePath string) {
 				s.EXPECT().SaveImage(gomock.Any(), image, gomock.Any(), relativePath).Return(nil).Times(0)
 			},
 			expectedStatus: codes.InvalidArgument,
-			expectedError:  service.ErrReceivedNilRequest,
 			maxImageSize:   1,
 			caseMessage:    "Case num %d, check receiving image with zero size",
 		},
 		{
 			imageBody: imagePNG,
-			mockBehavior: func(s *mock_repository.MockImageStorage, ctx context.Context, image []byte, filename string, relativePath string) {
+			mockBehavior: func(s *mock_repository.MockImageStorage, image []byte, relativePath string) {
 				s.EXPECT().SaveImage(gomock.Any(), image, gomock.Any(), relativePath).Return(nil).Times(1)
 			},
 			expectedStatus: codes.OK,
@@ -700,11 +671,10 @@ func TestStreamingUploadImage(t *testing.T) {
 		{
 			imageBody: imageJPG,
 			Category:  "Te132st",
-			mockBehavior: func(s *mock_repository.MockImageStorage, ctx context.Context, image []byte, filename string, relativePath string) {
+			mockBehavior: func(s *mock_repository.MockImageStorage, image []byte, relativePath string) {
 				s.EXPECT().SaveImage(gomock.Any(), image, gomock.Any(), relativePath).Return(nil).Times(0)
 			},
 			expectedStatus: codes.InvalidArgument,
-			expectedError:  service.ErrImageTooLarge,
 			maxImageSize:   len(imageJPG) / 2,
 			chunkSize:      len(imageJPG) / 10,
 			caseMessage:    "Case num %d, check receiving image with size bigger than maxSize",
@@ -712,20 +682,19 @@ func TestStreamingUploadImage(t *testing.T) {
 		{
 			imageBody: imagePNG,
 			Category:  "Te231st",
-			mockBehavior: func(s *mock_repository.MockImageStorage, ctx context.Context, image []byte, filename string, relativePath string) {
+			mockBehavior: func(s *mock_repository.MockImageStorage, image []byte, relativePath string) {
 				s.EXPECT().
 					SaveImage(gomock.Any(), image, gomock.Any(), relativePath).
-					Return(os.ErrPermission).
+					Return(models.Error(models.Internal, "")).
 					Times(1)
 			},
 			expectedStatus: codes.Internal,
 			maxImageSize:   len(imagePNG),
-			expectedError:  service.ErrCantSaveImage,
 			caseMessage:    "Case num %d, check receiving valid image, but repository return error",
 		},
 		{
 			imageBody: imageJPG,
-			mockBehavior: func(s *mock_repository.MockImageStorage, ctx context.Context, image []byte, filename string, relativePath string) {
+			mockBehavior: func(s *mock_repository.MockImageStorage, image []byte, relativePath string) {
 				s.EXPECT().SaveImage(gomock.Any(), image, gomock.Any(), relativePath).Return(nil).Times(0)
 			},
 			expectedStatus: codes.Canceled,
@@ -741,16 +710,18 @@ func TestStreamingUploadImage(t *testing.T) {
 		mockController := gomock.NewController(t)
 		defer mockController.Finish()
 		repo := mock_repository.NewMockImageStorage(mockController)
+		metr := service_mock.NewMockMetrics(mockController)
+		metr.EXPECT().IncBytesUploaded(gomock.Any()).AnyTimes()
 
-		conn := newClient(t, service.NewImagesStorageService(logger.Logger,
-			service.Config{MaxImageSize: testCase.maxImageSize}, repo, getMetrics(t)))
-		defer conn.Close()
+		service := service.NewImagesStorageService(logger.Logger, metr, repo, service.Config{MaxImageSize: testCase.maxImageSize})
+		conn := newClient(t, handler.NewImagesStorageServiceHandler(logger.Logger,
+			handler.Config{MaxImageSize: testCase.maxImageSize}, service))
 
 		client := protos.NewImagesStorageServiceV1Client(conn)
 
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
-		testCase.mockBehavior(repo, ctx, testCase.imageBody, "", testCase.Category)
+		testCase.mockBehavior(repo, testCase.imageBody, testCase.Category)
 
 		streamingReq, err := client.StreamingUploadImage(ctx)
 		assert.NoError(t, err)
@@ -787,21 +758,9 @@ func TestStreamingUploadImage(t *testing.T) {
 			"Must return expected status code",
 		)
 		if testCase.expectedStatus == codes.OK {
-			assert.NotNil(t, res, caseMessage, "Expected responce not to be nil")
-			assert.NoError(t, err, "Mustn't return error when returning non nil responce")
+			assert.NotNil(t, res, caseMessage, "Expected Response not to be nil")
+			assert.NoError(t, err, "Mustn't return error when returning non nil Response")
 			continue
-		}
-
-		assert.NotNil(t, err, caseMessage, "Must return error")
-		if testCase.expectedError != nil {
-			err := status.Convert(err)
-			assert.Contains(
-				t,
-				err.Message(),
-				testCase.expectedError.Error(),
-				caseMessage,
-				"Must return expected error",
-			)
 		}
 	}
 }

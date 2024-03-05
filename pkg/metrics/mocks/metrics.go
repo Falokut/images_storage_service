@@ -45,6 +45,18 @@ func (mr *MockMetricsMockRecorder) IncBytesUploaded(bytesUploaded interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IncBytesUploaded", reflect.TypeOf((*MockMetrics)(nil).IncBytesUploaded), bytesUploaded)
 }
 
+// IncGrpcPanicsTotal mocks base method.
+func (m *MockMetrics) IncGrpcPanicsTotal() {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "IncGrpcPanicsTotal")
+}
+
+// IncGrpcPanicsTotal indicates an expected call of IncGrpcPanicsTotal.
+func (mr *MockMetricsMockRecorder) IncGrpcPanicsTotal() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IncGrpcPanicsTotal", reflect.TypeOf((*MockMetrics)(nil).IncGrpcPanicsTotal))
+}
+
 // IncHits mocks base method.
 func (m *MockMetrics) IncHits(status int, method, path string) {
 	m.ctrl.T.Helper()
@@ -55,6 +67,18 @@ func (m *MockMetrics) IncHits(status int, method, path string) {
 func (mr *MockMetricsMockRecorder) IncHits(status, method, path interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IncHits", reflect.TypeOf((*MockMetrics)(nil).IncHits), status, method, path)
+}
+
+// IncRestPanicsTotal mocks base method.
+func (m *MockMetrics) IncRestPanicsTotal() {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "IncRestPanicsTotal")
+}
+
+// IncRestPanicsTotal indicates an expected call of IncRestPanicsTotal.
+func (mr *MockMetricsMockRecorder) IncRestPanicsTotal() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IncRestPanicsTotal", reflect.TypeOf((*MockMetrics)(nil).IncRestPanicsTotal))
 }
 
 // ObserveResponseTime mocks base method.
