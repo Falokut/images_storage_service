@@ -20,6 +20,14 @@ type Metrics interface {
 	IncGrpcPanicsTotal()
 }
 
+type EmptyMetrics struct{}
+
+func (m EmptyMetrics) IncHits(_ int, _, _ string)                        {}
+func (m EmptyMetrics) ObserveResponseTime(_ int, _, _ string, _ float64) {}
+func (m EmptyMetrics) IncBytesUploaded(bytesUploaded int)                {}
+func (m EmptyMetrics) IncRestPanicsTotal()                               {}
+func (m EmptyMetrics) IncGrpcPanicsTotal()                               {}
+
 type PrometheusMetrics struct {
 	HitsTotal             prometheus.Counter
 	Hits                  *prometheus.CounterVec

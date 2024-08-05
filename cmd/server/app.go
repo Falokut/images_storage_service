@@ -41,31 +41,37 @@ func main() {
 	}
 	logger.Logger.SetLevel(logLevel)
 
-	tracer, closer, err := jaegerTracer.InitJaeger(cfg.JaegerConfig)
-	if err != nil {
-		logger.Errorf("Shutting down, error while creating tracer %v", err)
-		return
-	}
-	logger.Info("Jaeger connected")
-	defer closer.Close()
-	opentracing.SetGlobalTracer(tracer)
-
-	logger.Info("Metrics initializing")
-	metric, err := metrics.CreateMetrics(cfg.PrometheusConfig.Name)
-	if err != nil {
-		logger.Errorf("Shutting down, error while creating metrics %v", err)
-		return
-	}
-
+	var metric metrics.Metrics
 	shutdown := make(chan error, 1)
-	go func() {
-		logger.Info("Metrics server running")
-		if err := metrics.RunMetricServer(cfg.PrometheusConfig.ServerConfig); err != nil {
-			logger.Errorf("Shutting down, error while running metrics server %v", err)
-			shutdown <- err
+	if cfg.EnableMetrics {
+		tracer, closer, err := jaegerTracer.InitJaeger(cfg.JaegerConfig)
+		if err != nil {
+			logger.Errorf("cannot create tracer %v", err)
 			return
 		}
-	}()
+		logger.Info("Jaeger connected")
+		defer closer.Close()
+
+		opentracing.SetGlobalTracer(tracer)
+
+		logger.Info("Metrics initializing")
+		metric, err = metrics.CreateMetrics(cfg.PrometheusConfig.Name)
+		if err != nil {
+			logger.Errorf("error while creating metrics %v", err)
+			return
+		}
+
+		go func() {
+			logger.Info("Metrics server running")
+			if err = metrics.RunMetricServer(cfg.PrometheusConfig.ServerConfig); err != nil {
+				logger.Errorf("Shutting down, error while running metrics server %v", err)
+				shutdown <- err
+				return
+			}
+		}()
+	} else {
+		metric = metrics.EmptyMetrics{}
+	}
 
 	var storage repository.ImageStorage
 	cfg.StorageMode = strings.ToUpper(cfg.StorageMode)

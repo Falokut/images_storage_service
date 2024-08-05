@@ -9,6 +9,7 @@ listen:
   max_request_size: 30
   max_response_size: 30
 
+enable_metrics: true
 jaeger:
   service_name: "Images_Storage_Service"
   address: jaeger:6831
