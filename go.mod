@@ -1,6 +1,6 @@
 module github.com/Falokut/images_storage_service
 
-go 1.22.0
+go 1.22
 
 require (
 	github.com/Falokut/healthcheck v0.0.0-20231124155013-bff54f9bc002
