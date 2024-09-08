@@ -45,7 +45,7 @@ func (s *MinioStorage) SaveImage(ctx context.Context, img []byte, filename strin
 	}
 	if !exists {
 		s.logger.Info(ctx, "creating bucket", log.Any("bucketName", bucketName))
-		err = s.storage.MakeBucket(ctx, category, minio.MakeBucketOptions{})
+		err = s.storage.MakeBucket(ctx, bucketName, minio.MakeBucketOptions{})
 		if err != nil {
 			return errors.WithMessage(err, "make bucket")
 		}
@@ -53,7 +53,7 @@ func (s *MinioStorage) SaveImage(ctx context.Context, img []byte, filename strin
 
 	reader := bytes.NewReader(img)
 	s.logger.Info(ctx, "save file", log.Any("bucketName", bucketName), log.Any("filename", filename))
-	_, err = s.storage.PutObject(ctx, category, filename, reader, int64(len(img)),
+	_, err = s.storage.PutObject(ctx, bucketName, filename, reader, int64(len(img)),
 		minio.PutObjectOptions{
 			UserMetadata: map[string]string{
 				"Name": filename,
@@ -131,7 +131,7 @@ func (s *MinioStorage) ReplaceImage(ctx context.Context, img []byte, filename st
 
 	reader := bytes.NewReader(img)
 	s.logger.Info(ctx, "save file", log.Any("bucketName", bucketName), log.Any("filename", filename))
-	_, err = s.storage.PutObject(ctx, category, filename, reader, int64(len(img)),
+	_, err = s.storage.PutObject(ctx, bucketName, filename, reader, int64(len(img)),
 		minio.PutObjectOptions{
 			UserMetadata: map[string]string{
 				"Name": filename,
