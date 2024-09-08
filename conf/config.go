@@ -31,7 +31,7 @@ type LocalConfig struct {
 		SecretAccessKey string `yaml:"secret_access_key" env:"MINIO_SECRET_ACCESS_KEY"`
 		Secure          bool   `yaml:"secure" env:"MINIO_SECURE"`
 	} `yaml:"minio"`
-	MaxImageSize int `yaml:"max_image_size" env:"MAX_IMAGE_SIZE"`
+	MaxImageSize int `yaml:"max_image_size" env:"MAX_IMAGE_SIZE"` // in mb
 	Listen       struct {
 		Host            string   `yaml:"host" env:"HOST"`
 		Port            string   `yaml:"port" env:"PORT"`

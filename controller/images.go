@@ -48,7 +48,7 @@ func NewImagesStorageServiceHandler(
 func (c Images) UploadImage(ctx context.Context,
 	in *img_storage_serv.UploadImageRequest) (res *img_storage_serv.UploadImageResponse, err error) {
 	imageId, err := c.service.SaveImage(ctx, in.Image, in.Category)
-	invalidArgError := &domain.InvalidArgumentError{}
+	invalidArgError := domain.InvalidArgumentError{}
 	switch {
 	case errors.As(err, &invalidArgError):
 		c.logger.Warn(ctx, "invalid argument", log.Any("error", err))
@@ -76,7 +76,7 @@ func (c Images) StreamingUploadImage(
 	}
 
 	imageId, err := c.service.SaveImage(ctx, imageData, req.Category)
-	invalidArgError := &domain.InvalidArgumentError{}
+	invalidArgError := domain.InvalidArgumentError{}
 	switch {
 	case errors.As(err, &invalidArgError):
 		c.logger.Warn(ctx, "invalid argument", log.Any("error", err))
@@ -130,7 +130,6 @@ func (c Images) receiveUploadImage(
 
 func (c Images) GetImage(ctx context.Context,
 	in *img_storage_serv.ImageRequest) (res *httpbody.HttpBody, err error) {
-
 	image, err := c.service.GetImage(ctx, in.ImageId, in.Category)
 	switch {
 	case errors.Is(err, domain.ErrImageNotFound):
@@ -172,7 +171,11 @@ func (c Images) DeleteImage(ctx context.Context,
 
 func (c Images) ReplaceImage(ctx context.Context, in *img_storage_serv.ReplaceImageRequest) (*img_storage_serv.ReplaceImageResponse, error) {
 	imageId, err := c.service.RewriteImage(ctx, in.ImageData, in.ImageId, in.Category, in.CreateIfNotExist)
+	invalidArgError := domain.InvalidArgumentError{}
 	switch {
+	case errors.As(err, &invalidArgError):
+		c.logger.Warn(ctx, "invalid argument", log.Any("error", err))
+		return nil, status.Error(codes.InvalidArgument, invalidArgError.Reason)
 	case errors.Is(err, domain.ErrImageNotFound):
 		c.logger.Warn(ctx, "image not found", log.Any("error", err))
 		return nil, status.Error(codes.NotFound, domain.ErrImageNotFound.Error())

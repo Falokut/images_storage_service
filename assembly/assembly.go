@@ -77,9 +77,9 @@ func Locator(_ context.Context, logger log.Logger, cfg *conf.LocalConfig, metric
 	}
 
 	imagesService := service.NewImages(metric, imagesStorage, service.Config{
-		MaxImageSize: cfg.MaxImageSize,
+		MaxImageSize: cfg.MaxImageSize * mb,
 	})
-	imagesController := controller.NewImagesStorageServiceHandler(logger, imagesService, cfg.MaxImageSize)
+	imagesController := controller.NewImagesStorageServiceHandler(logger, imagesService, cfg.MaxImageSize*mb)
 	return Config{
 		Mux: imagesController,
 	}, nil
