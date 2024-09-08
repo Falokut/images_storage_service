@@ -1,22 +1,31 @@
-package config
+package conf
 
 import (
+	"context"
+	"fmt"
 	"sync"
 
 	"github.com/Falokut/images_storage_service/pkg/jaeger"
 
-	"github.com/Falokut/images_storage_service/pkg/logging"
+	"github.com/Falokut/go-kit/log"
 	"github.com/Falokut/images_storage_service/pkg/metrics"
 	"github.com/ilyakaznacheev/cleanenv"
 )
 
-type Config struct {
-	LogLevel             string `yaml:"log_level" env:"LOG_LEVEL"`
+type LocalConfig struct {
+	Log struct {
+		LogLevel      string `yaml:"level" env:"LOG_LEVEL"`
+		ConsoleOutput bool   `yaml:"console_output" env:"LOG_CONSOLE_OUTPUT"`
+		Filepath      string `yaml:"filepath" env:"LOG_FILEPATH"`
+	} `yaml:"log"`
+	App struct {
+		Id      string `yaml:"id" env:"APP_ID"`
+		Version string `yaml:"version" env:"APP_VERSION"`
+	} `yaml:"app"`
 	BaseLocalStoragePath string `yaml:"base_local_storage_path" env:"BASE_LOCAL_STORAGE_PATH"`
-	HealthcheckPort      string `yaml:"healthcheck_port" env:"HEALTHCHECK_PORT"`
-	
-	StorageMode          string `yaml:"storage_mode" env:"STORAGE_MODE"` // MINIO or LOCAL
-	MinioConfig          struct {
+
+	StorageMode string `yaml:"storage_mode" env:"STORAGE_MODE"` // MINIO or LOCAL
+	MinioConfig struct {
 		Endpoint        string `yaml:"endpoint" env:"MINIO_ENDPOINT"`
 		AccessKeyID     string `yaml:"access_key_id" env:"MINIO_ACCESS_KEY_ID"`
 		SecretAccessKey string `yaml:"secret_access_key" env:"MINIO_SECRET_ACCESS_KEY"`
@@ -32,7 +41,7 @@ type Config struct {
 		MaxResponseSize int      `yaml:"max_response_size" env:"MAX_RESPONSE_SIZE"`
 	} `yaml:"listen"`
 
-	EnableMetrics        bool   `yaml:"enable_metrics" env:"ENABLE_METRICS"`
+	EnableMetrics    bool `yaml:"enable_metrics" env:"ENABLE_METRICS"`
 	PrometheusConfig struct {
 		Name         string                      `yaml:"service_name" env:"PROMETHEUS_SERVICE_NAME"`
 		ServerConfig metrics.MetricsServerConfig `yaml:"server_config"`
@@ -40,19 +49,24 @@ type Config struct {
 	JaegerConfig jaeger.Config `yaml:"jaeger"`
 }
 
-var instance *Config
+var instance *LocalConfig
 var once sync.Once
 
-const configsPath = "configs/"
+const configsPath = "conf/"
 
-func GetConfig() *Config {
+func GetLocalConfig() *LocalConfig {
 	once.Do(func() {
-		logger := logging.GetLogger()
-		instance = &Config{}
+		instance = &LocalConfig{}
 
 		if err := cleanenv.ReadConfig(configsPath+"config.yml", instance); err != nil {
 			help, _ := cleanenv.GetDescription(instance, nil)
-			logger.Fatal(help, " ", err)
+			logger, _ := log.NewFromConfig(log.Config{
+				Loglevel: log.FatalLevel,
+				Output: log.OutputConfig{
+					Console: true,
+				},
+			})
+			logger.Fatal(context.Background(), fmt.Sprint(help, err))
 		}
 	})
 
