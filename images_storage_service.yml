@@ -18,7 +18,7 @@ services:
          - images_storage_network
          - minio_storage_network
       volumes:
-         - ./docker/containers-configs/app-configs/:/configs
+         - ./conf/:/conf
          - ./.container_data/images/:/images/
       environment:
          MINIO_ACCESS_KEY_ID: ${MINIO_ACCESS_KEY_ID}
@@ -28,12 +28,6 @@ services:
       depends_on:
          minio_gateway:
             condition: service_started
-      healthcheck:
-         test: wget --no-verbose --tries=1 --spider 'http://localhost:7001/healthcheck' || exit 1
-         interval: 40s
-         timeout: 10s
-         retries: 2
-         start_period: 20s
       deploy:
          mode: replicated
          replicas: 1
