@@ -120,7 +120,10 @@ func (a *Assembly) Closers() []app.CloserFunc {
 			return nil
 		},
 		func(context.Context) error {
-			return a.jaegerCloser.Close()
+			if a.cfg.EnableMetrics {
+				return a.jaegerCloser.Close()
+			}
+			return nil
 		},
 	}
 }
