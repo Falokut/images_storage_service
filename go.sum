@@ -5,8 +5,10 @@ github.com/BurntSushi/toml v1.2.1/go.mod h1:CxXYINrC8qIiEnFrOxCa7Jy5BFHlXnUU2pbi
 github.com/BurntSushi/toml v1.3.2 h1:o7IhLm0Msx3BaB+n3Ag7L8EVlByGnpq14C4YWiu/gL8=
 github.com/BurntSushi/toml v1.3.2/go.mod h1:CxXYINrC8qIiEnFrOxCa7Jy5BFHlXnUU2pbicEuybxQ=
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
-github.com/Falokut/go-kit v0.0.0-20240807192033-04179808062c h1:8uv53Gpf8FW/SifvBnJZ+DELHCQt5UbJAuhWUID4S1s=
-github.com/Falokut/go-kit v0.0.0-20240807192033-04179808062c/go.mod h1:j4Jj2EgqkSkfklqHNj7K8xpO2ZTIlctCijPH50BMOlU=
+github.com/Falokut/go-kit v0.0.0-20240909160952-5e3f554ee4d0 h1:3ZOSJC850SNGEI9L7YOvWWAilRABjswO9KM4AJWvEO0=
+github.com/Falokut/go-kit v0.0.0-20240909160952-5e3f554ee4d0/go.mod h1:fUYUa2PpgAakKCRpJG/Rc1/d1JbNS6Ekz7iezZ2jSB0=
+github.com/Falokut/go-kit v0.0.0-20240909162920-ab8433c3a2b5 h1:dAMUfbHeHRjtknTjQTmU0IpXJWBZPHOvnb8Cw3O7JPg=
+github.com/Falokut/go-kit v0.0.0-20240909162920-ab8433c3a2b5/go.mod h1:fUYUa2PpgAakKCRpJG/Rc1/d1JbNS6Ekz7iezZ2jSB0=
 github.com/Falokut/grpc_rest_server v1.0.10 h1:1V3sGMy6VIYzNHVnHihR1ZANhQ9GSLPbET+/d7r1im0=
 github.com/Falokut/grpc_rest_server v1.0.10/go.mod h1:wgvrNHWOApVDr8uJSSEX5W7bHM4TnZvM5lxvPkqAkvE=
 github.com/Falokut/interceptors v1.0.6 h1:ipODS8HVs1LpLMa6LSuxn0XfeLUOySB/2doj/jE8Lq0=

@@ -26,3 +26,4 @@
 
 *.log
 *.exe
+conf/dev_config.yml

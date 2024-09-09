@@ -4,10 +4,6 @@ log:
 
 max_image_size: 10
 
-app:
-  id: images_storage
-  version: 1.0.0
-
 listen:
   host: 0.0.0.0
   port: 8080
@@ -16,4 +12,4 @@ listen:
   max_response_size: 10
 
 minio:
-  endpoint: "host.docker.internal:9000"
+  endpoint: "localhost:9000"

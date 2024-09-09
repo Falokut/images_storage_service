@@ -9,8 +9,9 @@ import (
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/opentracing/opentracing-go"
 
+	"github.com/Falokut/go-kit/app"
+	"github.com/Falokut/go-kit/config"
 	"github.com/Falokut/go-kit/log"
-	"github.com/Falokut/images_storage_service/app"
 	"github.com/Falokut/images_storage_service/conf"
 	"github.com/Falokut/images_storage_service/controller"
 	img_storage_serv "github.com/Falokut/images_storage_service/pkg/images_storage_service/v1/protos"
@@ -29,12 +30,17 @@ const (
 type Assembly struct {
 	logger       log.Logger
 	server       server.Server
-	cfg          *conf.LocalConfig
+	cfg          conf.LocalConfig
 	metric       metrics.Metrics
 	jaegerCloser io.Closer
 }
 
-func New(ctx context.Context, logger log.Logger, cfg *conf.LocalConfig) (*Assembly, error) {
+func New(ctx context.Context, logger log.Logger) (*Assembly, error) {
+	var cfg conf.LocalConfig
+	err := config.Read(&cfg)
+	if err != nil {
+		return nil, errors.WithMessage(err, "read local config")
+	}
 	metric, closer, err := getMetrics(cfg)
 	if err != nil {
 		return nil, errors.WithMessage(err, "get metrics")
@@ -57,7 +63,7 @@ type Config struct {
 	Mux any
 }
 
-func Locator(_ context.Context, logger log.Logger, cfg *conf.LocalConfig, metric metrics.Metrics) (Config, error) {
+func Locator(_ context.Context, logger log.Logger, cfg conf.LocalConfig, metric metrics.Metrics) (Config, error) {
 	var imagesStorage service.ImageStorage
 	storageMode := strings.ToUpper(cfg.StorageMode)
 	switch storageMode {
@@ -119,7 +125,7 @@ func (a *Assembly) Closers() []app.CloserFunc {
 	}
 }
 
-func getMetrics(cfg *conf.LocalConfig) (metrics.Metrics, io.Closer, error) {
+func getMetrics(cfg conf.LocalConfig) (metrics.Metrics, io.Closer, error) {
 	if !cfg.EnableMetrics {
 		return metrics.EmptyMetrics{}, nil, nil
 	}
@@ -138,7 +144,7 @@ func getMetrics(cfg *conf.LocalConfig) (metrics.Metrics, io.Closer, error) {
 	return metric, closer, nil
 }
 
-func getListenServerConfig(cfg *conf.LocalConfig) server.Config {
+func getListenServerConfig(cfg conf.LocalConfig) server.Config {
 	return server.Config{
 		Mode:           cfg.Listen.Mode,
 		Host:           cfg.Listen.Host,

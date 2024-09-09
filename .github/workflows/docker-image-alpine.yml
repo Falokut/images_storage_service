@@ -30,12 +30,3 @@ jobs:
           push: true
           tags: falokut/${{ github.event.repository.name }}-alpine:latest
           labels: ${{ steps.meta.outputs.labels }}
-
-      - name: Publish scratch to Registry
-        uses: docker/build-push-action@v5
-        with:
-          file: scratch.Dockerfile
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: falokut/${{ github.event.repository.name }}-scratch:latest
-          labels: ${{ steps.meta.outputs.labels }}
