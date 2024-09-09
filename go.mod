@@ -41,7 +41,7 @@ require (
 require (
 	github.com/BurntSushi/toml v1.3.2 // indirect
 	github.com/Falokut/go-kit v0.0.0-20240909162920-ab8433c3a2b5
-	github.com/Falokut/grpc_rest_server v1.0.10
+	github.com/Falokut/grpc_rest_server v1.0.11
 	github.com/HdrHistogram/hdrhistogram-go v1.1.2 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
