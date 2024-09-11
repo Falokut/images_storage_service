@@ -86,7 +86,7 @@ func (s *MinioStorage) GetImage(ctx context.Context, filename string, category s
 
 	image := make([]byte, objectInfo.Size)
 	_, err = obj.Read(image)
-	if err != nil && err == io.EOF {
+	if err != nil && err != io.EOF {
 		return nil, errors.WithMessage(err, "read object")
 	}
 
