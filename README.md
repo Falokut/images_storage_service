@@ -16,7 +16,7 @@
 
 # Docs
 
-[Swagger docs](swagger/docs/images_storage_service_v1.swagger.json)
+[Swagger docs](docs/swagger.yaml)
 
 # Author
 
