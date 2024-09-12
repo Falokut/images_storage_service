@@ -11,10 +11,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-type Config struct {
-	MaxImageSize int
-}
-
 //go:generate mockgen -source=repository.go -destination=mocks/imageStorage.go
 type ImageStorage interface {
 	SaveImage(ctx context.Context, img []byte, filename string, category string) error
@@ -30,30 +26,18 @@ type Metrics interface {
 }
 
 type Images struct {
-	metrics Metrics
-	storage ImageStorage
-	cfg     Config
+	storage      ImageStorage
+	maxImageSize int
 }
 
-func NewImages(metrics Metrics, storage ImageStorage, cfg Config) Images {
+func NewImages(storage ImageStorage, maxImageSize int) Images {
 	return Images{
-		metrics: metrics,
-		storage: storage,
-		cfg:     cfg,
+		storage:      storage,
+		maxImageSize: maxImageSize,
 	}
-}
-
-func (s Images) detectFileType(fileData []byte) string {
-	fileType := mimetype.Detect(fileData)
-	Type := strings.Split(fileType.String(), "/")
-	return Type[0]
 }
 
 func (s Images) SaveImage(ctx context.Context, img []byte, category string) (string, error) {
-	if fileType := s.detectFileType(img); fileType != "image" {
-		return "", domain.NewInvalidArgumentError(fmt.Sprintf("file type is not supported. file type: '%s'", fileType))
-	}
-
 	err := s.checkImage(img)
 	if err != nil {
 		return "", errors.WithMessage(err, "check image")
@@ -65,7 +49,6 @@ func (s Images) SaveImage(ctx context.Context, img []byte, category string) (str
 		return "", errors.WithMessage(err, "save image")
 	}
 
-	s.metrics.IncBytesUploaded(len(img))
 	return imageId, nil
 }
 
@@ -95,10 +78,6 @@ func (s Images) DeleteImage(ctx context.Context, imageId string, category string
 
 func (s Images) RewriteImage(ctx context.Context, img []byte, imageId string,
 	category string, createImageIfNotExist bool) (string, error) {
-	if fileType := s.detectFileType(img); fileType != "image" {
-		return "", domain.NewInvalidArgumentError(fmt.Sprintf("file type is not supported. file type: '%s'", fileType))
-	}
-
 	err := s.checkImage(img)
 	if err != nil {
 		return "", errors.WithMessage(err, "check image")
@@ -127,16 +106,28 @@ func (s Images) RewriteImage(ctx context.Context, img []byte, imageId string,
 	return newImageId, nil
 }
 
+func (s Images) detectFileType(fileData []byte) string {
+	fileType := mimetype.Detect(fileData)
+	Type := strings.Split(fileType.String(), "/")
+	return Type[0]
+}
+
 func (s Images) checkImage(image []byte) error {
 	if len(image) == 0 {
-		return domain.NewInvalidArgumentError("file has zero size")
+		return domain.NewInvalidArgumentError("file has zero size", domain.ErrCodeImageHasZeroSize)
 	}
-	if len(image) > s.cfg.MaxImageSize {
+	if len(image) > s.maxImageSize {
 		return domain.NewInvalidArgumentError(
 			fmt.Sprintf("image is too large max image size: %d, file size: %d",
-				s.cfg.MaxImageSize, len(image)),
+				s.maxImageSize, len(image)),
+			domain.ErrCodeImageTooBig,
 		)
 	}
-
+	if fileType := s.detectFileType(image); fileType != "image" {
+		return domain.NewInvalidArgumentError(
+			fmt.Sprintf("file type is not supported. file type: '%s'", fileType),
+			domain.ErrCodeUnsupportedFileType,
+		)
+	}
 	return nil
 }

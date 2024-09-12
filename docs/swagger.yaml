@@ -1,0 +1,217 @@
+basePath: /api/images-storage-service
+definitions:
+  apierrors.Error:
+    properties:
+      details:
+        additionalProperties: {}
+        type: object
+      errorCode:
+        type: integer
+      errorMessage:
+        type: string
+    type: object
+  domain.Empty:
+    type: object
+  domain.ImageExistResponse:
+    properties:
+      imageExist:
+        type: boolean
+    type: object
+  domain.ReplaceImageResponse:
+    properties:
+      imageId:
+        type: string
+    type: object
+  domain.UploadImageRequest:
+    properties:
+      category:
+        type: string
+      image:
+        items:
+          type: integer
+        type: array
+    required:
+    - category
+    - image
+    type: object
+  domain.UploadImageResponse:
+    properties:
+      imageId:
+        type: string
+    type: object
+info:
+  contact: {}
+  description: Сервис для хранения изображений
+  title: images_storage_service
+  version: 1.0.0
+paths:
+  /image/:category:
+    post:
+      consumes:
+      - application/json
+      description: Загрузить изображение в хранилище
+      parameters:
+      - description: Категория изображения
+        in: path
+        name: category
+        required: true
+        type: string
+      - description: request body
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/domain.UploadImageRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.UploadImageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apierrors.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/apierrors.Error'
+      summary: Upload image
+      tags:
+      - image
+  /image/:category/:imageId:
+    delete:
+      consumes:
+      - application/json
+      description: Удалить изображение из хранилища
+      parameters:
+      - description: Категория изображения
+        in: path
+        name: category
+        required: true
+        type: string
+      - description: Идентификатор изображения
+        in: path
+        name: imageId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.Empty'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apierrors.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/apierrors.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/apierrors.Error'
+      summary: Delete image
+      tags:
+      - image
+    get:
+      consumes:
+      - application/json
+      description: Получить изображение из хранилища
+      parameters:
+      - description: Категория изображения
+        in: path
+        name: category
+        required: true
+        type: string
+      - description: Идентификатор изображения
+        in: path
+        name: imageId
+        required: true
+        type: string
+      produces:
+      - image/*
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: integer
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apierrors.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/apierrors.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/apierrors.Error'
+      summary: Get image
+      tags:
+      - image
+  /image/:category/:imageId/exist:
+    get:
+      consumes:
+      - application/json
+      description: Проверить наличие изображения в хранилище
+      parameters:
+      - description: Категория изображения
+        in: path
+        name: category
+        required: true
+        type: string
+      - description: Идентификатор изображения
+        in: path
+        name: imageId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.ImageExistResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apierrors.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/apierrors.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/apierrors.Error'
+      summary: Is image exist
+      tags:
+      - image
+  /image/:category/:imageId/replace:
+    post:
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.ReplaceImageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apierrors.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/apierrors.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/apierrors.Error'
+swagger: "2.0"

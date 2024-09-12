@@ -12,7 +12,7 @@ import (
 //	@title			images_storage_service
 //	@version		1.0.0
 //	@description	Сервис для хранения изображений
-//	@BasePath		/api/images-storage
+//	@BasePath		/api/images-storage-service
 
 //go:generate swag init --parseDependency
 //go:generate rm -f docs/swagger.json docs/docs.go
